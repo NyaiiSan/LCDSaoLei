@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <time.h>
+#include <linux/input.h>
+#include <pthread.h>
 
 #include "utile.h"
 #include "bmp.h"

@@ -25,29 +25,21 @@ Screen initScreen(){
 int main(int argc, char * argv[]){
 	srand((unsigned)time(NULL));
 	Screen screen = initScreen();
+	Screen img = getBmpImg("Header.bmp");
 
-	BmpImg * img = openBmpImg("Header.bmp");
-	printf("Width = %d, Height = %d, Depth = %d \n", img->width, img->height, img->depth);
+	struct point * point = malloc(sizeof(struct point));
 
-	clearScreen(screen, 0x00ffffff);
+	pthread_t t;
+	pthread_create(&t, NULL, alwaysGet_Touch, (void *)point);
+
+	int x,y;
 
 	while(1){
-		int * e = getButton("/dev/input/event1");
-		
-		int i;
-		for(i=0; i<12; i++){
-			printf("%#x ", *(e+i));
-		}
-		// x: e+7
-		// y: e+11
-		puts("");
-		free(e);
-
-		if(*(e+7) == 0 || *(e+11)==0) continue;
-		int x = *(e+7) - 100;
-		int y = *(e+11) - 100;
-		clearScreen(screen, 0x00ffffffff);
-		showBmpImg(screen, img, x, y);
+		if(x==point->x && y==point->y) continue;
+		drawRect(screen, x-100, y-100, 200, 200, 0x00ffffff);
+		x = point->x;
+		y = point->y;
+		buflash(screen, img, point->x-100, point->y-100);
 	}
 
 	return 0;
