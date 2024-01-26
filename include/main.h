@@ -9,11 +9,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <time.h>
 
 #include "utile.h"
+#include "bmp.h"
 #include "draw.h"
 
-#define Height 600
-#define Width 1024
 
 #endif

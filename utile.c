@@ -13,3 +13,20 @@ unsigned int color(unsigned char r, unsigned char g, unsigned char b){
 
 	return color;
 }
+
+int * getButton(char * but){
+	FILE * fb = fopen(but, "r");
+	int * e = malloc(16 * sizeof(int));
+	fgets((char*)e, 16 * sizeof(int), fb);
+	fclose(fb);
+
+	return e;
+}
+
+int randuint(int min, int max){
+	int num = rand();
+	num = num > 0 ? num : -num;
+	num = min + num % (max-min);
+
+	return num;
+}

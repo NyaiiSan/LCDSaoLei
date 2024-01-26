@@ -1,6 +1,10 @@
 #include "main.h"
 
-int * initScreen(){
+Screen initScreen(){
+	Screen screen;
+	screen.width = 1024;
+	screen.height = 600;
+
 	int fb;
 	int * ptr;
 	fb = open("/dev/fb0", O_RDWR);
@@ -9,46 +13,42 @@ int * initScreen(){
 		exit(1);
     }
 
-    ptr = mmap(NULL, Width*Height*4 , PROT_READ|PROT_WRITE, MAP_SHARED , fb , 0);
+    ptr = mmap(NULL, 1024*600*4 , PROT_READ|PROT_WRITE, MAP_SHARED , fb , 0);
 	if (ptr == NULL){
         perror("mmap Error\n");
 		exit(1);
     }
-
-	return ptr;
+	screen.p = ptr;
+	return screen;
 }
 
 int main(int argc, char * argv[]){
-	int * screen = initScreen();
+	srand((unsigned)time(NULL));
+	Screen screen = initScreen();
 
-	int x, y;
-	x = 100;
-	y = 200;
-	int xs, ys;
-	xs = 5;
-	ys = 5;
+	BmpImg * img = openBmpImg("Header.bmp");
+	printf("Width = %d, Height = %d, Depth = %d \n", img->width, img->height, img->depth);
 
-	clear(screen);
+	clearScreen(screen, 0x00ffffff);
 
 	while(1){
-		drawTaiji(screen, x, y, 100);
-		usleep(33000);
-		drawRect(screen, x-100, y-100, 200, 200, 0x00888888);
+		int * e = getButton("/dev/input/event1");
 		
-		x += xs;
-		y += ys;
-		
-		if(x > Width - 100){
-			xs = -5;
+		int i;
+		for(i=0; i<12; i++){
+			printf("%#x ", *(e+i));
 		}
-		else if(x < 0 + 100){
-			xs = 5;
-		}
-		if(y > Height - 100){
-			ys = -5;
-		}
-		else if(y < 0 + 100){
-			ys = 5;
-		}
+		// x: e+7
+		// y: e+11
+		puts("");
+		free(e);
+
+		if(*(e+7) == 0 || *(e+11)==0) continue;
+		int x = *(e+7) - 100;
+		int y = *(e+11) - 100;
+		clearScreen(screen, 0x00ffffffff);
+		showBmpImg(screen, img, x, y);
 	}
+
+	return 0;
 }
