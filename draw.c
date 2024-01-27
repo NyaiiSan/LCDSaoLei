@@ -14,6 +14,7 @@ int clearScreen(Screen screen, int color){
 
 int drawPoint(Screen screen, int x, int y, int color){
     if(x < 0 | x >= screen.width | y < 0 | y >= screen.height){
+        printf("DrawPoint: Out of screen \n");
         return -1;
     }
     *(screen.p + screen.width * y + x) = color;
@@ -87,18 +88,12 @@ int buflash(Screen screen, Screen buf, int sx, int sy){
     int x, y;
     int color;
     for(y=0; y<buf.height; y++){
-        if(y+sy > screen.height || y < 0) break;
-
         for(x=0; x<buf.width; x++){
-            if(x+buf.width > screen.width || x < 0) break;
-
             color = *(buf.p + buf.width * y + x);
             if(color == -1) continue;
-
             drawPoint(screen, sx+x, sy+y, color);
         }
     }
-
     return 1;
 }
 
@@ -205,4 +200,48 @@ int drawAnimeGrad(Screen screen, Screen buf, Anime anime){
         buflash(screen, newBuf, anime.sx, anime.sy);
         free(newBuf.p);
     }
+}
+
+int drawChar(Screen screen, int sx, int sy, char c, int width, int height, int color){
+    
+    // 获取字符的字形
+    CharFont font = getCharFont(c);
+    
+    // 创建一个字符Screen
+    Screen charScreen;
+    charScreen.width = width;
+    charScreen.height = height;
+    charScreen.p = malloc(width*height*sizeof(int));
+
+    // 初始化内容
+    clearScreen(charScreen, -1);
+
+    // 绘制字符
+    
+    // 计算字符每个像素的像素宽度
+    int pixSize;
+
+    int wpixSize = charScreen.width / font.width; // 宽度能取得的最大像素
+    int hpixSize = charScreen.height / font.height; // 高度能取得的最大像素
+    pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
+
+    // 计算外边距
+    int xmargin = (charScreen.width - font.width * pixSize) / 2;
+    int ymargin = (charScreen.height - font.height * pixSize) / 2;
+
+    // 绘制字符
+    int x, y;
+    for(y=0; y<font.height; y++){
+        for(x=0; x<font.width; x++){
+            if(*(font.p + y*font.width + x) != 0){
+                drawRect(charScreen, xmargin + pixSize * x, ymargin + pixSize * y, pixSize, pixSize, color);
+            }
+        }
+    }
+
+    buflash(screen, charScreen, sx, sy);
+    free(charScreen.p);
+    free(font.p);
+
+    return 1;
 }

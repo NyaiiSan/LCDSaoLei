@@ -15,7 +15,8 @@
 
 #include "utile.h"
 #include "bmp.h"
+#include "font.h"
 #include "draw.h"
-
+#include "SaoLei.h"
 
 #endif

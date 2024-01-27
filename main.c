@@ -25,22 +25,22 @@ Screen initScreen(){
 int main(int argc, char * argv[]){
 	srand((unsigned)time(NULL));
 	Screen screen = initScreen();
-	Screen img = getBmpImg("Header.bmp");
+	clearScreen(screen, 0x00ffffff);
+	
+	GameMap sourceMap = creatGameMap(8, 10, 10);
+    GameMap maskMap = creatMaskMap(sourceMap);
+	drawGameMap(screen, maskMap, 0, 0, 600, 600);
+	drawGameMap(screen, sourceMap, 800, 0, 200, 200);
 
-	struct point * point = malloc(sizeof(struct point));
-
-	pthread_t t;
-	pthread_create(&t, NULL, alwaysGet_Touch, (void *)point);
-
-	int x,y;
-
+	int x, y;
 	while(1){
-		if(x==point->x && y==point->y) continue;
-		drawRect(screen, x-100, y-100, 200, 200, 0x00ffffff);
-		x = point->x;
-		y = point->y;
-		buflash(screen, img, point->x-100, point->y-100);
+		printf("input: ");
+		scanf("%d %d", &x, &y);
+		if(openGrid(sourceMap, &maskMap, x, y) == 1){
+			drawGameMap(screen, sourceMap, 0, 0, 600, 600);
+			break;
+		}
+		drawGameMap(screen, maskMap, 0, 0, 600, 600);
+		drawGameMap(screen, sourceMap, 800, 0, 200, 200);
 	}
-
-	return 0;
 }

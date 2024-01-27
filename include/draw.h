@@ -48,5 +48,7 @@ int drawAnimeMove(Screen screen, Screen buf, Anime anime);
 // 绘制一个渐变动画
 int drawAnimeGrad(Screen screen, Screen buf, Anime anime);
 
+// 绘制一个字符
+int drawChar(Screen screen, int sx, int sy, char c, int width, int height, int color);
 
 #endif
