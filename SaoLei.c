@@ -114,45 +114,33 @@ GameMap creatMaskMap(GameMap sourceMap){
     return maskMap;
 }
 
-int drawGameMap(Screen screen, GameMap map, int sx, int sy, int width, int height){
-    printf("Draw GameMap \n");
-    // 创建一个绘制map的Screen
-    Screen mapScreen;
-    mapScreen.height = height;
-    mapScreen.width = width;
-    mapScreen.p = malloc(width*height*sizeof(int));
-
-    //初始化mapScreen
-    clearScreen(mapScreen, -1);
+int flashGameScreen(Screen * gameScreen, GameMap * map){
 
     // 计算字符每个网格的像素宽度
     int pixSize;
-
-    int wpixSize = mapScreen.width / map.width; // 宽度能取得的最大像素
-    int hpixSize = mapScreen.height / map.height; // 高度能取得的最大像素
+    int wpixSize = gameScreen->width / map->width; // 宽度能取得的最大像素
+    int hpixSize = gameScreen->height / map->height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (mapScreen.width - map.width * pixSize) / 2;
-    int ymargin = (mapScreen.height - map.height * pixSize) / 2;
-
-    printf("xmargin: %d, yamrgin: %d \n", xmargin, ymargin);
+    int xmargin = (gameScreen->width - map->width * pixSize) / 2;
+    int ymargin = (gameScreen->height - map->height * pixSize) / 2;
 
     // 绘制边框
     int x, y;
-    for(y=1; y<map.height; y++){
-        drawRect(mapScreen, xmargin, ymargin + pixSize * y, map.width*pixSize, 4, 0x0066ccff);
+    for(y=1; y<map->height; y++){
+        drawRect(gameScreen, xmargin, ymargin + pixSize * y, map->width*pixSize, 4, 0x0066ccff);
     }
-    for(x=1; x<map.width; x++){
-        drawRect(mapScreen, xmargin + pixSize * x, ymargin, 4, map.height*pixSize, 0x0066ccff);
+    for(x=1; x<map->width; x++){
+        drawRect(gameScreen, xmargin + pixSize * x, ymargin, 4, map->height*pixSize, 0x0066ccff);
     }
 
     // 绘制GameMap
-    for(y=0; y<map.height; y++){
-        for(x=0; x<map.width; x++){
-            drawRect(mapScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
+    for(y=0; y<map->height; y++){
+        for(x=0; x<map->width; x++){
+            drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
             char data;
-            getMapData(&map, x, y, &data);
+            getMapData(map, x, y, &data);
             // printf("(%d, %d) : %c \t", x, y, data);
             if(data >= '1' && data <= '8'){
                 int color;
@@ -182,23 +170,41 @@ int drawGameMap(Screen screen, GameMap map, int sx, int sy, int width, int heigh
                     color = 0x00222222;
                     break;
                 }
-                drawChar(mapScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
+                drawChar(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
             }
             else if(data == 'm'){
-                drawRect(mapScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
+                drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
             }
             else if(data == 'h'){
-                drawRect(mapScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+                drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+            }
+            else if(data == 's'){
+                drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
             }
             else{
                 continue;
             }
         }
     }
-
-    buflash(screen, mapScreen, sx, sy);
-    free(mapScreen.p);
     return 0;
+}
+
+static int gameIsWin(GameMap * showMap){
+    int x, y;
+    int hideNum = 0;
+    for(y = 0; y<showMap->height; y++){
+        for(x = 0; x<showMap->width; x++){
+            char data;
+            getMapData(showMap, x, y, &data);
+            if(data == 'h') hideNum++;
+        }
+    }
+    if(hideNum == showMap->diffic){
+        return 1;
+    }
+    else{
+        return 0;
+    }
 }
 
 int openGrid(GameMap sourceMap, GameMap * showMap, int x, int y){
@@ -212,25 +218,91 @@ int openGrid(GameMap sourceMap, GameMap * showMap, int x, int y){
 
     // 获取格子中的实际内容
     getMapData(&sourceMap, x, y, &data);
-    if(data >= '1' && data <= '9'){ // 点到一个数字，揭开这一个格子
+    if(data >= '0' && data <= '8'){ // 点到一个数字，揭开这一个格子
         setMapData(showMap, x, y, data);
-        return 0;
-    }
-    else if(data == '0'){
-        setMapData(showMap, x, y, data);
-        int i, j;
-        for(j=y-1; j<y+2; j++){
-            if(j < 0) continue;
-            if(j >= showMap->height) break;
-            for(i=x-1; i<x+2; i++){
-                if(i < 0) continue;
-                if(i >= showMap->width) break;
-                openGrid(sourceMap, showMap, i, j);
+        if(data == '0'){
+            int i, j;
+            for(j=y-1; j<y+2; j++){
+                if(j < 0) continue;
+                if(j >= showMap->height) break;
+                for(i=x-1; i<x+2; i++){
+                    if(i < 0) continue;
+                    if(i >= showMap->width) break;
+                    openGrid(sourceMap, showMap, i, j);
+                }
             }
+        }
+        if(gameIsWin){
+            return 6;
         }
         return 0;
     }
+
     else if(data == 'm'){ // 点到地雷游戏结束
         return 1;
     }
+}
+
+static Point * getRelatPoints(Screen * view, Point * touchP){
+    struct touchPoint * relatPoint = malloc(sizeof(struct touchPoint));
+    // 获取相对坐标
+    relatPoint->x = touchP->x - view->relatX;
+    relatPoint->y = touchP->y - view->relatY;
+    // 判断坐标是否在view内部
+    if(relatPoint->x < 0 || relatPoint->x > view->width || relatPoint->y < 0 || relatPoint->y > view->height){
+        return NULL;
+    }
+    return relatPoint;
+}
+
+int getTouchGrid(Screen * view, GameMap * map, Point * touchP, int * res){
+// 获取相对坐标并绘制光标
+    Point * relatP = getRelatPoints(view, touchP);
+    if (relatP == NULL){
+        return -1;
+    }
+    // printf("relatP of game View: (%d, %d) \n", relatP->x, relatP->y);
+
+    // 计算字符每个网格的像素宽度
+    int pixSize;
+    int wpixSize = view->width / map->width; // 宽度能取得的最大像素
+    int hpixSize = view->height / map->height; // 高度能取得的最大像素
+    pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
+
+    // 计算外边距
+    int xmargin = (view->width - map->width * pixSize) / 2;
+    int ymargin = (view->height - map->height * pixSize) / 2;
+
+    if(relatP->x < xmargin || relatP->y < ymargin){
+        return -1;
+    }
+
+    *res = (relatP->x - xmargin) / pixSize;
+    *(res + 1) = (relatP->y - ymargin) / pixSize;;
+
+    // printf("TouchGrid: (%d, %d) \n", *res, *(res + 1));
+
+    free(relatP);
+    return 1;
+}
+
+int selectGrid(GameMap * maskMap, int x, int y, Screen * gameView){
+    char data;
+    getMapData(maskMap, x, y, &data);
+    int i, j;
+    if(data == 'h'){
+        for(j=0; j<maskMap->height; j++){
+            for(i=0; i<maskMap->width; i++){
+                getMapData(maskMap, i, j, &data);
+                if(data == 's'){
+                    setMapData(maskMap, i, j, 'h');
+                }
+            }
+        }
+        printf("selectGrid: Select(%d, %d) \n", x, y);
+        setMapData(maskMap, x, y, 's');
+    }
+    flashGameScreen(gameView, maskMap);
+
+    return 1;
 }

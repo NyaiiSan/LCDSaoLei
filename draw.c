@@ -3,33 +3,32 @@
 extern int fb;
 extern int * ptr;
 
-int clearScreen(Screen screen, int color){
+int clearScreen(Screen * screen, int color){
     int x, y;
-    for(x=0; x<screen.width; x++){
-        for(y=0; y<screen.height; y++){
+    for(x=0; x<screen->width; x++){
+        for(y=0; y<screen->height; y++){
             drawPoint(screen, x, y, color);
         }
     }
 }
 
-int drawPoint(Screen screen, int x, int y, int color){
-    if(x < 0 | x >= screen.width | y < 0 | y >= screen.height){
+int drawPoint(Screen * screen, int x, int y, int color){
+    if(x < 0 | x >= screen->width | y < 0 | y >= screen->height){
         printf("DrawPoint: Out of screen \n");
-        return -1;
+         return -1;
     }
-    *(screen.p + screen.width * y + x) = color;
+    *(screen->p + screen->width * y + x) = color;
 }
 
-int drawRect(Screen screen, int sx, int sy, int width, int height, int color){
+int drawRect(Screen * screen, int sx, int sy, int width, int height, int color){
     if(sx < 0) sx = 0;
     if(sy < 0) sy = 0;
 
     int tx, ty;
     tx = sx + width;
     ty = sy + height;
-    if(tx > screen.width) tx = screen.width;
-    if(ty > screen.height) ty = screen.height;
-
+    if(tx > screen->width) tx = screen->width;
+    if(ty > screen->height) ty = screen->height;
     int x,y;
     for(x=sx; x<tx; x++){
         for(y=sy; y<ty; y++){
@@ -39,10 +38,10 @@ int drawRect(Screen screen, int sx, int sy, int width, int height, int color){
     return 1;
 }
 
-int drawCircle(Screen screen, int sx, int sy, int r, int color){
+int drawCircle(Screen * screen, int sx, int sy, int r, int color){
     int x, y;
-    for(x=(sx-r>0?sx-r:0); x < (sx+r<screen.width ? sx+r: screen.width); x++){
-        for(y=(sy-r>0?sy-r:0); y<(sy+r<screen.height ? sy+r: screen.height); y++){
+    for(x=(sx-r>0?sx-r:0); x < (sx+r<screen->width ? sx+r: screen->width); x++){
+        for(y=(sy-r>0?sy-r:0); y<(sy+r<screen->height ? sy+r: screen->height); y++){
             if(pointsDistance(sx, sy, x, y) < r){
                 drawPoint(screen, x, y, color);
             }
@@ -50,46 +49,46 @@ int drawCircle(Screen screen, int sx, int sy, int r, int color){
     }
 }
 
-int drawTaiji(Screen screen, int sx, int sy, int r){
+int drawTaiji(Screen * screen, int sx, int sy, int r){
     // 创建一块缓冲区
     Screen buf;
     buf.height = 2*r;
     buf.width = 2*r;
     buf.p = malloc(4 * r * r * sizeof(int));
 
-    clearScreen(buf, -1);
+    clearScreen(&buf, -1);
     int x, y;
     for(x=0; x<2*r; x++){
         for(y=0; y<2*r; y++){
             if(pointsDistance(r, r, x, y) < r){
                 if(x<r){
-                    drawPoint(buf, x, y, 0x00000000);
+                    drawPoint(&buf, x, y, 0x00000000);
                 }
                 else{
-                    drawPoint(buf, x, y, 0x00ffffff);
+                    drawPoint(&buf, x, y, 0x00ffffff);
                 }
             }
         }
     }
 
-    drawCircle(buf, r, r/2, r/2, 0x00000000);
-    drawCircle(buf, r, r/2, r/6, 0x00ffffff);
+    drawCircle(&buf, r, r/2, r/2, 0x00000000);
+    drawCircle(&buf, r, r/2, r/6, 0x00ffffff);
 
-    drawCircle(buf, r, r+(r/2), r/2, 0x00ffffff);
-    drawCircle(buf, r, r+(r/2), r/6, 0x00000000);
+    drawCircle(&buf, r, r+(r/2), r/2, 0x00ffffff);
+    drawCircle(&buf, r, r+(r/2), r/6, 0x00000000);
 
-    buflash(screen, buf, sx-r, sy-r);
+    buflash(screen, &buf, sx-r, sy-r);
 
     free(buf.p);
     return 0;
 }
 
-int buflash(Screen screen, Screen buf, int sx, int sy){
+int buflash(Screen * screen, Screen * buf, int sx, int sy){
     int x, y;
     int color;
-    for(y=0; y<buf.height; y++){
-        for(x=0; x<buf.width; x++){
-            color = *(buf.p + buf.width * y + x);
+    for(y=0; y<buf->height; y++){
+        for(x=0; x<buf->width; x++){
+            color = *(buf->p + buf->width * y + x);
             if(color == -1) continue;
             drawPoint(screen, sx+x, sy+y, color);
         }
@@ -121,7 +120,7 @@ Screen getBmpImg(char * path){
     return image;
 }
 
-int showBmpImg(Screen screen, BmpImg * img, int sx, int sy){
+int showBmpImg(Screen * screen, BmpImg * img, int sx, int sy){
     Screen image;
 	image.width = img->width;
 	image.height = img->height;
@@ -141,10 +140,10 @@ int showBmpImg(Screen screen, BmpImg * img, int sx, int sy){
 		}
 	}
 
-	buflash(screen, image, sx, sy);
+	buflash(screen, &image, sx, sy);
 }
 
-int drawAnimeMove(Screen screen, Screen buf, Anime anime){
+int drawAnimeMove(Screen * screen, Screen buf, Anime anime){
     
     //计算x，y方向的速度
     int xd = anime.tx - anime.sx;
@@ -161,7 +160,7 @@ int drawAnimeMove(Screen screen, Screen buf, Anime anime){
     
     int i;
     for(i=0; i<step; i++){
-        buflash(screen, buf, x, y);
+        buflash(screen, &buf, x, y);
         usleep(40000);
         drawRect(screen, x, y, buf.width, buf.height, 0x00ffffff);
         x = x+xs;
@@ -169,7 +168,7 @@ int drawAnimeMove(Screen screen, Screen buf, Anime anime){
     }
 }
 
-int drawAnimeGrad(Screen screen, Screen buf, Anime anime){
+int drawAnimeGrad(Screen * screen, Screen buf, Anime anime){
     int step = anime.speed;
     int i;
     for(i=1; i<100; i+=step){
@@ -197,12 +196,12 @@ int drawAnimeGrad(Screen screen, Screen buf, Anime anime){
                 newBuf.p[buf.width*y + x] = newColor;
             }
         }
-        buflash(screen, newBuf, anime.sx, anime.sy);
+        buflash(screen, &newBuf, anime.sx, anime.sy);
         free(newBuf.p);
     }
 }
 
-int drawChar(Screen screen, int sx, int sy, char c, int width, int height, int color){
+int drawChar(Screen * screen, int sx, int sy, char c, int width, int height, int color){
     
     // 获取字符的字形
     CharFont font = getCharFont(c);
@@ -214,7 +213,7 @@ int drawChar(Screen screen, int sx, int sy, char c, int width, int height, int c
     charScreen.p = malloc(width*height*sizeof(int));
 
     // 初始化内容
-    clearScreen(charScreen, -1);
+    clearScreen(&charScreen, -1);
 
     // 绘制字符
     
@@ -234,12 +233,12 @@ int drawChar(Screen screen, int sx, int sy, char c, int width, int height, int c
     for(y=0; y<font.height; y++){
         for(x=0; x<font.width; x++){
             if(*(font.p + y*font.width + x) != 0){
-                drawRect(charScreen, xmargin + pixSize * x, ymargin + pixSize * y, pixSize, pixSize, color);
+                drawRect(&charScreen, xmargin + pixSize * x, ymargin + pixSize * y, pixSize, pixSize, color);
             }
         }
     }
 
-    buflash(screen, charScreen, sx, sy);
+    buflash(screen, &charScreen, sx, sy);
     free(charScreen.p);
     free(font.p);
 
