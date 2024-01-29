@@ -107,6 +107,7 @@ GameMap creatMaskMap(GameMap sourceMap){
     GameMap maskMap;
     maskMap.width = sourceMap.width;
     maskMap.height = sourceMap.height;
+    maskMap.diffic = sourceMap.diffic;
     maskMap.p = malloc(maskMap.width*maskMap.height);
 
     initMaskMap(&maskMap);
@@ -196,9 +197,10 @@ static int gameIsWin(GameMap * showMap){
         for(x = 0; x<showMap->width; x++){
             char data;
             getMapData(showMap, x, y, &data);
-            if(data == 'h') hideNum++;
+            if(data == 'h' || data == 's') hideNum++;
         }
     }
+    printf("gameIsWin: hideNum %d diffic %d \n", hideNum, showMap->diffic);
     if(hideNum == showMap->diffic){
         return 1;
     }
@@ -207,17 +209,17 @@ static int gameIsWin(GameMap * showMap){
     }
 }
 
-int openGrid(GameMap sourceMap, GameMap * showMap, int x, int y){
+int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y){
     printf("openGrid: (%d, %d) \n", x, y);
     char data;
     // 判断要打开的格子的状态
     getMapData(showMap, x, y, &data);
-    if(data != 'h'){
+    if(data != 'h' && data != 's'){
         return -1;
     }
 
     // 获取格子中的实际内容
-    getMapData(&sourceMap, x, y, &data);
+    getMapData(sourceMap, x, y, &data);
     if(data >= '0' && data <= '8'){ // 点到一个数字，揭开这一个格子
         setMapData(showMap, x, y, data);
         if(data == '0'){
@@ -232,7 +234,7 @@ int openGrid(GameMap sourceMap, GameMap * showMap, int x, int y){
                 }
             }
         }
-        if(gameIsWin){
+        if(gameIsWin(showMap) == 1){
             return 6;
         }
         return 0;
@@ -243,26 +245,20 @@ int openGrid(GameMap sourceMap, GameMap * showMap, int x, int y){
     }
 }
 
-static Point * getRelatPoints(Screen * view, Point * touchP){
-    struct touchPoint * relatPoint = malloc(sizeof(struct touchPoint));
-    // 获取相对坐标
-    relatPoint->x = touchP->x - view->relatX;
-    relatPoint->y = touchP->y - view->relatY;
+int getRelatPoints(Screen * view, Point * touchP, int * relatPoint){
+    relatPoint[0] = touchP->x - view->relatX;
+    relatPoint[1] = touchP->y - view->relatY;
     // 判断坐标是否在view内部
-    if(relatPoint->x < 0 || relatPoint->x > view->width || relatPoint->y < 0 || relatPoint->y > view->height){
-        return NULL;
-    }
-    return relatPoint;
-}
-
-int getTouchGrid(Screen * view, GameMap * map, Point * touchP, int * res){
-// 获取相对坐标并绘制光标
-    Point * relatP = getRelatPoints(view, touchP);
-    if (relatP == NULL){
+    if(relatPoint[0] < 0 || relatPoint[0] > view->width || relatPoint[1] < 0 || relatPoint[1] > view->height){
         return -1;
     }
-    // printf("relatP of game View: (%d, %d) \n", relatP->x, relatP->y);
 
+    touchP->x = touchP->y = -1;
+    return 1;
+}
+
+int getTouchGrid(Screen * view, GameMap * map, int * relatP, int * res){
+// 获取相对坐标并绘制光标
     // 计算字符每个网格的像素宽度
     int pixSize;
     int wpixSize = view->width / map->width; // 宽度能取得的最大像素
@@ -273,22 +269,25 @@ int getTouchGrid(Screen * view, GameMap * map, Point * touchP, int * res){
     int xmargin = (view->width - map->width * pixSize) / 2;
     int ymargin = (view->height - map->height * pixSize) / 2;
 
-    if(relatP->x < xmargin || relatP->y < ymargin){
+    if(relatP[0] < xmargin || relatP[1] < ymargin){
         return -1;
     }
 
-    *res = (relatP->x - xmargin) / pixSize;
-    *(res + 1) = (relatP->y - ymargin) / pixSize;;
+    *res = (relatP[0] - xmargin) / pixSize;
+    *(res + 1) = (relatP[1] - ymargin) / pixSize;
 
     // printf("TouchGrid: (%d, %d) \n", *res, *(res + 1));
-
-    free(relatP);
     return 1;
 }
 
-int selectGrid(GameMap * maskMap, int x, int y, Screen * gameView){
+int selectGrid(Screen * gameView, GameMap * maskMap, int * relatPoints){
+
+    // 获取触摸的网格
+    int grid[2];
+    getTouchGrid(gameView, maskMap, relatPoints, grid);
+
     char data;
-    getMapData(maskMap, x, y, &data);
+    getMapData(maskMap, grid[0], grid[1], &data);
     int i, j;
     if(data == 'h'){
         for(j=0; j<maskMap->height; j++){
@@ -299,10 +298,31 @@ int selectGrid(GameMap * maskMap, int x, int y, Screen * gameView){
                 }
             }
         }
-        printf("selectGrid: Select(%d, %d) \n", x, y);
-        setMapData(maskMap, x, y, 's');
+        printf("selectGrid: Select(%d, %d) \n", grid[0], grid[1]);
+        setMapData(maskMap, grid[0], grid[1], 's');
     }
-    flashGameScreen(gameView, maskMap);
-
     return 1;
+}
+
+int viewIsTouched(Screen * view, Point * touchP){
+    int t[2];
+    if(getRelatPoints(view, touchP, t) == -1){
+        return 0;
+    }
+    return 1;
+}
+
+int openSelectedGrid(GameMap * sourceMap, GameMap * showMap){
+    // 找到被选中的格子
+    int x, y;
+    for(y=0; y<showMap->height; y++){
+        for(x=0; x<showMap->width; x++){
+            char data;
+            getMapData(showMap, x, y, &data);
+            if(data == 's'){
+                return openGrid(sourceMap, showMap, x, y);
+            }
+        }
+    }
+    return -1;
 }
