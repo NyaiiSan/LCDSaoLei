@@ -13,7 +13,7 @@ typedef struct{
 }GameMap;
 
 typedef struct{
-    Screen * gameView;
+    View * gameView;
     GameMap * sourceMap;
     GameMap * showMap;
 }SaoleiGame;
@@ -25,25 +25,25 @@ SaoleiGame * creatSaolei();
 void delSaolei(SaoleiGame *);
 
 // 在屏幕上绘制一张游戏图
-int flashGameScreen(Screen * screen, GameMap * map);
+int flashGameCanvas(Canvas * canvas, GameMap * map);
 
 // 打开一个网格
 int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y);
 
 // // 初始化游戏屏幕中的光标
-// struct touchPoint * initCursor(Screen screen, struct touchPoint * point);
+// struct touchPoint * initCursor(Canvas canvas, struct touchPoint * point);
 
 // 获取相对坐标
-int getRelatPoints(Screen * view, Point * touchP, int* posi);
+int getRelatPoints(View * view, Point * touchP, int * relatPoint);
 
 // 根据坐标获取网格
-int getTouchGrid(Screen * view, GameMap * map, int * relatP, int * res);
+int getTouchGrid(View * view, GameMap * map, int * relatP, int * res);
 
 // 选择一个网格
-int selectGrid(Screen * gameView, GameMap * maskMap, int * relatPoints);
+int selectGrid(View * gameView, GameMap * maskMap, int * relatPoints);
 
 // 是否被点击
-int viewIsTouched(Screen * view, Point * touchP);
+int viewIsTouched(View * view, Point * touchP);
 
 // 打开被选中的格子
 int openSelectedGrid(GameMap * sourceMap, GameMap * showMap);

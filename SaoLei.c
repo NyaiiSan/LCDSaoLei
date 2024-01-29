@@ -127,16 +127,12 @@ SaoleiGame * creatSaolei(){
 	game->sourceMap = sourceMap;
 	game->showMap = showMap;
 
-	// 建立一个游戏Screen
-	Screen * gameView = malloc(sizeof(Screen));
-	gameView->height = 600;
-	gameView->width = 600;
-	gameView->relatX = gameView->relatY = 0;
-	gameView->p = malloc(gameView->height * gameView->width * sizeof(int));
-	clearScreen(gameView, 0x00ffffff);
-	flashGameScreen(gameView, showMap);
+	// 建立一个游戏View
+	View * gameView = creatView(600, 600, 0, 0);
 
-	// 将两游戏Screen添加到游戏中
+	flashGameCanvas(gameView->canvas, showMap);
+
+	// 将两游戏Canvas添加到游戏中
 	game->gameView = gameView;
 
     return game;
@@ -149,37 +145,36 @@ void delSaolei(SaoleiGame * game){
     free(game->showMap->p);
     free(game->showMap);
 
-    free(game->gameView->p);
-    free(game->gameView);
+    delView(game->gameView);
 
     free(game);
 }
 
-int flashGameScreen(Screen * gameScreen, GameMap * map){
+int flashGameCanvas(Canvas * gameCanvas, GameMap * map){
 
     // 计算字符每个网格的像素宽度
     int pixSize;
-    int wpixSize = gameScreen->width / map->width; // 宽度能取得的最大像素
-    int hpixSize = gameScreen->height / map->height; // 高度能取得的最大像素
+    int wpixSize = gameCanvas->width / map->width; // 宽度能取得的最大像素
+    int hpixSize = gameCanvas->height / map->height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (gameScreen->width - map->width * pixSize) / 2;
-    int ymargin = (gameScreen->height - map->height * pixSize) / 2;
+    int xmargin = (gameCanvas->width - map->width * pixSize) / 2;
+    int ymargin = (gameCanvas->height - map->height * pixSize) / 2;
 
     // 绘制边框
     int x, y;
     for(y=1; y<map->height; y++){
-        drawRect(gameScreen, xmargin, ymargin + pixSize * y, map->width*pixSize, 4, 0x0066ccff);
+        drawRect(gameCanvas, xmargin, ymargin + pixSize * y, map->width*pixSize, 4, 0x0066ccff);
     }
     for(x=1; x<map->width; x++){
-        drawRect(gameScreen, xmargin + pixSize * x, ymargin, 4, map->height*pixSize, 0x0066ccff);
+        drawRect(gameCanvas, xmargin + pixSize * x, ymargin, 4, map->height*pixSize, 0x0066ccff);
     }
 
     // 绘制GameMap
     for(y=0; y<map->height; y++){
         for(x=0; x<map->width; x++){
-            drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
+            drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
             char data;
             getMapData(map, x, y, &data);
             // printf("(%d, %d) : %c \t", x, y, data);
@@ -211,16 +206,16 @@ int flashGameScreen(Screen * gameScreen, GameMap * map){
                     color = 0x00222222;
                     break;
                 }
-                drawChar(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
+                drawChar(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
             }
             else if(data == 'm'){
-                drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
+                drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
             }
             else if(data == 'h'){
-                drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+                drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
             }
             else if(data == 's'){
-                drawRect(gameScreen, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
+                drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
             }
             else{
                 continue;
@@ -285,11 +280,11 @@ int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y){
     }
 }
 
-int getRelatPoints(Screen * view, Point * touchP, int * relatPoint){
-    relatPoint[0] = touchP->x - view->relatX;
-    relatPoint[1] = touchP->y - view->relatY;
+int getRelatPoints(View * view, Point * touchP, int * relatPoint){
+    relatPoint[0] = touchP->x - view->marginsX;
+    relatPoint[1] = touchP->y - view->marginsY;
     // 判断坐标是否在view内部
-    if(relatPoint[0] < 0 || relatPoint[0] > view->width || relatPoint[1] < 0 || relatPoint[1] > view->height){
+    if(relatPoint[0] < 0 || relatPoint[0] > view->canvas->width || relatPoint[1] < 0 || relatPoint[1] > view->canvas->height){
         return -1;
     }
 
@@ -297,17 +292,17 @@ int getRelatPoints(Screen * view, Point * touchP, int * relatPoint){
     return 1;
 }
 
-int getTouchGrid(Screen * view, GameMap * map, int * relatP, int * res){
+int getTouchGrid(View * view, GameMap * map, int * relatP, int * res){
 // 获取相对坐标并绘制光标
     // 计算字符每个网格的像素宽度
     int pixSize;
-    int wpixSize = view->width / map->width; // 宽度能取得的最大像素
-    int hpixSize = view->height / map->height; // 高度能取得的最大像素
+    int wpixSize = view->canvas->width / map->width; // 宽度能取得的最大像素
+    int hpixSize = view->canvas->height / map->height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (view->width - map->width * pixSize) / 2;
-    int ymargin = (view->height - map->height * pixSize) / 2;
+    int xmargin = (view->canvas->width - map->width * pixSize) / 2;
+    int ymargin = (view->canvas->height - map->height * pixSize) / 2;
 
     if(relatP[0] < xmargin || relatP[1] < ymargin){
         return -1;
@@ -320,7 +315,7 @@ int getTouchGrid(Screen * view, GameMap * map, int * relatP, int * res){
     return 1;
 }
 
-int selectGrid(Screen * gameView, GameMap * maskMap, int * relatPoints){
+int selectGrid(View * gameView, GameMap * maskMap, int * relatPoints){
 
     // 获取触摸的网格
     int grid[2];
@@ -344,7 +339,7 @@ int selectGrid(Screen * gameView, GameMap * maskMap, int * relatPoints){
     return 1;
 }
 
-int viewIsTouched(Screen * view, Point * touchP){
+int viewIsTouched(View * view, Point * touchP){
     int t[2];
     if(getRelatPoints(view, touchP, t) == -1){
         return 0;

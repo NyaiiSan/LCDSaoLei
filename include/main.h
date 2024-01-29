@@ -17,6 +17,7 @@
 #include "bmp.h"
 #include "font.h"
 #include "draw.h"
+#include "view.h"
 #include "touch.h"
 #include "SaoLei.h"
 

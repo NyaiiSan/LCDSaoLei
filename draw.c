@@ -3,60 +3,60 @@
 extern int fb;
 extern int * ptr;
 
-int clearScreen(Screen * screen, int color){
+int clearCanvas(Canvas * canvas, int color){
     int x, y;
-    for(x=0; x<screen->width; x++){
-        for(y=0; y<screen->height; y++){
-            drawPoint(screen, x, y, color);
+    for(x=0; x<canvas->width; x++){
+        for(y=0; y<canvas->height; y++){
+            drawPoint(canvas, x, y, color);
         }
     }
 }
 
-int drawPoint(Screen * screen, int x, int y, int color){
-    if(x < 0 | x >= screen->width | y < 0 | y >= screen->height){
-        printf("DrawPoint: Out of screen \n");
+int drawPoint(Canvas * canvas, int x, int y, int color){
+    if(x < 0 | x >= canvas->width | y < 0 | y >= canvas->height){
+        // printf("DrawPoint: Out of canvas \n");
          return -1;
     }
-    *(screen->p + screen->width * y + x) = color;
+    *(canvas->p + canvas->width * y + x) = color;
 }
 
-int drawRect(Screen * screen, int sx, int sy, int width, int height, int color){
+int drawRect(Canvas * canvas, int sx, int sy, int width, int height, int color){
     if(sx < 0) sx = 0;
     if(sy < 0) sy = 0;
 
     int tx, ty;
     tx = sx + width;
     ty = sy + height;
-    if(tx > screen->width) tx = screen->width;
-    if(ty > screen->height) ty = screen->height;
+    if(tx > canvas->width) tx = canvas->width;
+    if(ty > canvas->height) ty = canvas->height;
     int x,y;
     for(x=sx; x<tx; x++){
         for(y=sy; y<ty; y++){
-            drawPoint(screen, x, y, color);
+            drawPoint(canvas, x, y, color);
         }
     }
     return 1;
 }
 
-int drawCircle(Screen * screen, int sx, int sy, int r, int color){
+int drawCircle(Canvas * canvas, int sx, int sy, int r, int color){
     int x, y;
-    for(x=(sx-r>0?sx-r:0); x < (sx+r<screen->width ? sx+r: screen->width); x++){
-        for(y=(sy-r>0?sy-r:0); y<(sy+r<screen->height ? sy+r: screen->height); y++){
+    for(x=(sx-r>0?sx-r:0); x < (sx+r<canvas->width ? sx+r: canvas->width); x++){
+        for(y=(sy-r>0?sy-r:0); y<(sy+r<canvas->height ? sy+r: canvas->height); y++){
             if(pointsDistance(sx, sy, x, y) < r){
-                drawPoint(screen, x, y, color);
+                drawPoint(canvas, x, y, color);
             }
         }
     }
 }
 
-int drawTaiji(Screen * screen, int sx, int sy, int r){
+int drawTaiji(Canvas * canvas, int sx, int sy, int r){
     // 创建一块缓冲区
-    Screen buf;
+    Canvas buf;
     buf.height = 2*r;
     buf.width = 2*r;
     buf.p = malloc(4 * r * r * sizeof(int));
 
-    clearScreen(&buf, -1);
+    clearCanvas(&buf, -1);
     int x, y;
     for(x=0; x<2*r; x++){
         for(y=0; y<2*r; y++){
@@ -77,28 +77,28 @@ int drawTaiji(Screen * screen, int sx, int sy, int r){
     drawCircle(&buf, r, r+(r/2), r/2, 0x00ffffff);
     drawCircle(&buf, r, r+(r/2), r/6, 0x00000000);
 
-    buflash(screen, &buf, sx-r, sy-r);
+    buflash(canvas, &buf, sx-r, sy-r);
 
     free(buf.p);
     return 0;
 }
 
-int buflash(Screen * screen, Screen * buf, int sx, int sy){
+int buflash(Canvas * canvas, Canvas * buf, int sx, int sy){
     int x, y;
     int color;
     for(y=0; y<buf->height; y++){
         for(x=0; x<buf->width; x++){
             color = *(buf->p + buf->width * y + x);
             if(color == -1) continue;
-            drawPoint(screen, sx+x, sy+y, color);
+            drawPoint(canvas, sx+x, sy+y, color);
         }
     }
     return 1;
 }
 
-Screen getBmpImg(char * path){
+Canvas getBmpImg(char * path){
     BmpImg * img = openBmpImg(path);
-    Screen image;
+    Canvas image;
 	image.width = img->width;
 	image.height = img->height;
 	image.p = malloc(image.width * image.height * sizeof(int));
@@ -106,7 +106,7 @@ Screen getBmpImg(char * path){
 	int x, y;
 	int bufSize = 0;
 
-    // 将图片保存到Screen
+    // 将图片保存到Canvas
 	for(y=0; y<image.height; y++){
 		for(x=0; x<image.width; x++){
 			char * cp = (img->p + (img->depth/8) * (y * img->width + x));
@@ -120,8 +120,8 @@ Screen getBmpImg(char * path){
     return image;
 }
 
-int showBmpImg(Screen * screen, BmpImg * img, int sx, int sy){
-    Screen image;
+int showBmpImg(Canvas * canvas, BmpImg * img, int sx, int sy){
+    Canvas image;
 	image.width = img->width;
 	image.height = img->height;
 	image.p = malloc(image.width * image.height * sizeof(int));
@@ -129,7 +129,7 @@ int showBmpImg(Screen * screen, BmpImg * img, int sx, int sy){
 	int x, y;
 	int bufSize = 0;
 
-    // 将图片保存到Screen
+    // 将图片保存到Canvas
 	for(y=0; y<image.height; y++){
 		for(x=0; x<image.width; x++){
 			char * cp = (img->p + (img->depth/8) * (y * img->width + x));
@@ -140,10 +140,10 @@ int showBmpImg(Screen * screen, BmpImg * img, int sx, int sy){
 		}
 	}
 
-	buflash(screen, &image, sx, sy);
+	buflash(canvas, &image, sx, sy);
 }
 
-int drawAnimeMove(Screen * screen, Screen buf, Anime anime){
+int drawAnimeMove(Canvas * canvas, Canvas buf, Anime anime){
     
     //计算x，y方向的速度
     int xd = anime.tx - anime.sx;
@@ -160,20 +160,20 @@ int drawAnimeMove(Screen * screen, Screen buf, Anime anime){
     
     int i;
     for(i=0; i<step; i++){
-        buflash(screen, &buf, x, y);
+        buflash(canvas, &buf, x, y);
         usleep(40000);
-        drawRect(screen, x, y, buf.width, buf.height, 0x00ffffff);
+        drawRect(canvas, x, y, buf.width, buf.height, 0x00ffffff);
         x = x+xs;
         y = y+ys;
     }
 }
 
-int drawAnimeGrad(Screen * screen, Screen buf, Anime anime){
+int drawAnimeGrad(Canvas * canvas, Canvas buf, Anime anime){
     int step = anime.speed;
     int i;
     for(i=1; i<100; i+=step){
         printf("%d \n", i);
-        Screen newBuf;
+        Canvas newBuf;
         newBuf.width = buf.width;
         newBuf.height = buf.height;
         newBuf.p = malloc(newBuf.height*newBuf.width*4);
@@ -196,50 +196,50 @@ int drawAnimeGrad(Screen * screen, Screen buf, Anime anime){
                 newBuf.p[buf.width*y + x] = newColor;
             }
         }
-        buflash(screen, &newBuf, anime.sx, anime.sy);
+        buflash(canvas, &newBuf, anime.sx, anime.sy);
         free(newBuf.p);
     }
 }
 
-int drawChar(Screen * screen, int sx, int sy, char c, int width, int height, int color){
+int drawChar(Canvas * canvas, int sx, int sy, char c, int width, int height, int color){
     
     // 获取字符的字形
     CharFont font = getCharFont(c);
     
-    // 创建一个字符Screen
-    Screen charScreen;
-    charScreen.width = width;
-    charScreen.height = height;
-    charScreen.p = malloc(width*height*sizeof(int));
+    // 创建一个字符Canvas
+    Canvas charCanvas;
+    charCanvas.width = width;
+    charCanvas.height = height;
+    charCanvas.p = malloc(width*height*sizeof(int));
 
     // 初始化内容
-    clearScreen(&charScreen, -1);
+    clearCanvas(&charCanvas, -1);
 
     // 绘制字符
     
     // 计算字符每个像素的像素宽度
     int pixSize;
 
-    int wpixSize = charScreen.width / font.width; // 宽度能取得的最大像素
-    int hpixSize = charScreen.height / font.height; // 高度能取得的最大像素
+    int wpixSize = charCanvas.width / font.width; // 宽度能取得的最大像素
+    int hpixSize = charCanvas.height / font.height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (charScreen.width - font.width * pixSize) / 2;
-    int ymargin = (charScreen.height - font.height * pixSize) / 2;
+    int xmargin = (charCanvas.width - font.width * pixSize) / 2;
+    int ymargin = (charCanvas.height - font.height * pixSize) / 2;
 
     // 绘制字符
     int x, y;
     for(y=0; y<font.height; y++){
         for(x=0; x<font.width; x++){
             if(*(font.p + y*font.width + x) != 0){
-                drawRect(&charScreen, xmargin + pixSize * x, ymargin + pixSize * y, pixSize, pixSize, color);
+                drawRect(&charCanvas, xmargin + pixSize * x, ymargin + pixSize * y, pixSize, pixSize, color);
             }
         }
     }
 
-    buflash(screen, &charScreen, sx, sy);
-    free(charScreen.p);
+    buflash(canvas, &charCanvas, sx, sy);
+    free(charCanvas.p);
     free(font.p);
 
     return 1;
