@@ -12,11 +12,17 @@ typedef struct{
     char * p;   // 存储地图的数组
 }GameMap;
 
-// 创建一张游戏图
-GameMap creatGameMap(int width, int height, int n);
+typedef struct{
+    Screen * gameView;
+    GameMap * sourceMap;
+    GameMap * showMap;
+}SaoleiGame;
 
-// 创建一个隐藏的游戏图
-GameMap creatMaskMap(GameMap sourceMap);
+// 初始化一个扫雷游戏
+SaoleiGame * creatSaolei();
+
+// 删除一个扫雷游戏
+void delSaolei(SaoleiGame *);
 
 // 在屏幕上绘制一张游戏图
 int flashGameScreen(Screen * screen, GameMap * map);

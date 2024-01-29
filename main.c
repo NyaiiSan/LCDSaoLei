@@ -49,18 +49,6 @@ int main(int argc, char * argv[]){
 	// 初始化触控坐标
 	Point * touchP = initTouch();
 	
-	// 初始化游戏
-	GameMap sourceMap = creatGameMap(8, 10, 10);
-    GameMap maskMap = creatMaskMap(sourceMap);
-	// 建立一个游戏Screen
-	Screen gameView;
-	gameView.height = 600;
-	gameView.width = 600;
-	gameView.relatX = gameView.relatY = 0;
-	gameView.p = malloc(gameView.height * gameView.width * sizeof(int));
-	clearScreen(&gameView, 0x00ffffff);
-	flashGameScreen(&gameView, &maskMap);
-
 	// 新建一个点击Screen 功能是开启一个格子
 	Screen gridOpenView;
 	gridOpenView.width = 200;
@@ -70,9 +58,21 @@ int main(int argc, char * argv[]){
 	gridOpenView.p = malloc(gridOpenView.height * gridOpenView.width * sizeof(int));
 	clearScreen(&gridOpenView, 0x0000ff00);
 
+	// 新建一个点击Screen 功能重新开始游戏
+	Screen restartGameView;
+	restartGameView.width = 200;
+	restartGameView.height = 100;
+	restartGameView.relatX = 650;
+	restartGameView.relatY = 330;
+	restartGameView.p = malloc(restartGameView.height * restartGameView.width * sizeof(int));
+	clearScreen(&restartGameView, 0x00ffff00);
+
+	// 初始化一个游戏
+	SaoleiGame * game = creatSaolei();
+
 	// 建立新线程刷新屏幕
-	int screenNum = 2;
-	Screen * views[] = {(Screen *)&screenNum, &gameView, &gridOpenView};
+	int screenNum = 3;
+	Screen * views[] = {(Screen *)&screenNum, game->gameView, &gridOpenView, &restartGameView};
 	pthread_t t;
 	pthread_create(&t, NULL, flashAllView, (void *)views);
 
@@ -81,33 +81,41 @@ int main(int argc, char * argv[]){
 	int touchInGame_last[2];
 
 	while(1){
-		usleep(50000);
+		usleep(5000);
 
-		// 获取gameScreen触摸事件
-		getRelatPoints(&gameView, touchP, touchInGame);
-		if(touchInGame_last[0] != touchInGame[0] && touchInGame_last[1] != touchInGame[1]){
-			// 获取触摸的网格坐标
-			selectGrid(&gameView, &maskMap, touchInGame);
-			flashGameScreen(&gameView, &maskMap);
-			touchInGame_last[0] = touchInGame[0];
-			touchInGame_last[1] = touchInGame[1];
+		// 获取gameScreen点击事件
+		if(getRelatPoints(game->gameView, touchP, touchInGame) != -1){
+			if(touchInGame_last[0] != touchInGame[0] && touchInGame_last[1] != touchInGame[1]){
+				// 获取触摸的网格坐标
+				selectGrid(game->gameView, game->showMap, touchInGame);
+				flashGameScreen(game->gameView, game->showMap);
+				touchInGame_last[0] = touchInGame[0];
+				touchInGame_last[1] = touchInGame[1];
+			}
 		}
 		
 		// 获取gridOpenView点击
 		if(viewIsTouched(&gridOpenView, touchP)){
 			printf("main: gridOpenView is be touched \n");
 			
-			int openRes = openSelectedGrid(&sourceMap, &maskMap);
+			int openRes = openSelectedGrid(game->sourceMap, game->showMap);
 			if(openRes == 1){
 				printf("Game Over \n");
-				flashGameScreen(&gameView, &sourceMap);
+				flashGameScreen(game->gameView, game->sourceMap);
 				break;
 			}
 			else if(openRes == 6){
 				printf("Game Win! \n");
 				break;
 			}
-			flashGameScreen(&gameView, &maskMap);
+			flashGameScreen(game->gameView, game->showMap);
+		}
+
+		// 获取restartGameView点击
+		if(viewIsTouched(&restartGameView, touchP)){
+			printf("main: restartGameView is be touched \n");
+			delSaolei(game);
+			game = creatSaolei(); 
 		}
 	}
 

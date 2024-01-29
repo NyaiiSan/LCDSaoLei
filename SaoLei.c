@@ -91,28 +91,68 @@ static int initMaskMap(GameMap * map){
     }
 }
 
-GameMap creatGameMap(int width, int height, int n){
-    GameMap map;
-    map.width = width;
-    map.height = height;
-    map.diffic = n;
-    map.p = malloc(width * height);
+static GameMap * creatGameMap(int width, int height, int n){
+    GameMap * map = malloc(sizeof(GameMap));
+    map->width = width;
+    map->height = height;
+    map->diffic = n;
+    map->p = malloc(width * height);
 
-    initSourceMap(&map);
+    initSourceMap(map);
     
     return map;
 }
 
-GameMap creatMaskMap(GameMap sourceMap){
-    GameMap maskMap;
-    maskMap.width = sourceMap.width;
-    maskMap.height = sourceMap.height;
-    maskMap.diffic = sourceMap.diffic;
-    maskMap.p = malloc(maskMap.width*maskMap.height);
+static GameMap * creatMaskMap(GameMap * sourceMap){
+    GameMap * maskMap = malloc(sizeof(GameMap));
+    maskMap->width = sourceMap->width;
+    maskMap->height = sourceMap->height;
+    maskMap->diffic = sourceMap->diffic;
+    maskMap->p = malloc(maskMap->width*maskMap->height);
 
-    initMaskMap(&maskMap);
+    initMaskMap(maskMap);
 
     return maskMap;
+}
+
+SaoleiGame * creatSaolei(){
+    // 初始化游戏
+	SaoleiGame * game = malloc(sizeof(SaoleiGame)); //创建一个游戏
+
+	// 创建一个游戏的两张基础图
+	GameMap * sourceMap = creatGameMap(8, 10, 10);
+    GameMap * showMap = creatMaskMap(sourceMap);
+	
+	// 将两张基础图添加到游戏中
+	game->sourceMap = sourceMap;
+	game->showMap = showMap;
+
+	// 建立一个游戏Screen
+	Screen * gameView = malloc(sizeof(Screen));
+	gameView->height = 600;
+	gameView->width = 600;
+	gameView->relatX = gameView->relatY = 0;
+	gameView->p = malloc(gameView->height * gameView->width * sizeof(int));
+	clearScreen(gameView, 0x00ffffff);
+	flashGameScreen(gameView, showMap);
+
+	// 将两游戏Screen添加到游戏中
+	game->gameView = gameView;
+
+    return game;
+}
+
+void delSaolei(SaoleiGame * game){
+    free(game->sourceMap->p);
+    free(game->sourceMap);
+
+    free(game->showMap->p);
+    free(game->showMap);
+
+    free(game->gameView->p);
+    free(game->gameView);
+
+    free(game);
 }
 
 int flashGameScreen(Screen * gameScreen, GameMap * map){
