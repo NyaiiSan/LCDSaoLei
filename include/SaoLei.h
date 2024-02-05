@@ -16,7 +16,7 @@ typedef struct{
     View * gameView;
     GameMap * sourceMap;
     GameMap * showMap;
-    View * screen; // 游戏将要在哪个窗口运行
+    char state;
 }SaoleiGame;
 
 // 初始化一个扫雷游戏
@@ -26,8 +26,19 @@ SaoleiGame * creatSaolei();
 int restartSaolei();
 
 /**
+ * 选择一个格子: 光标移动到选中格子
+*/
+
+int selectGrid();
+
+/**
  * 打开被选中的格子
 */
 int openSelectedGrid();
+
+/**
+ * 被选中的格子插旗
+*/
+int flagSelectedGrid();
 
 #endif

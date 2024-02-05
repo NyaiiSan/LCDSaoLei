@@ -11,7 +11,7 @@ static int flashGameView();
  * 1 打开后游戏失败
  * 6 打开后游戏胜利
 */
-static int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y);
+static int openGrid(int x, int y);
 
 // 扫雷游戏
 SaoleiGame * game;
@@ -149,6 +149,8 @@ SaoleiGame * creatSaolei(){
 	// 将两游戏Canvas添加到游戏中
 	game->gameView = gameView;
 
+    game->state = 1;
+
     flashGameView();
 
     return game;
@@ -158,6 +160,10 @@ SaoleiGame * creatSaolei(){
 static int flashGameView(){
     View * view = game->gameView;
     GameMap * map = game->showMap;
+
+    if(game->state != 1){
+        return -1;
+    }
 
     // 刷新的时候锁定
     view->state = 0;
@@ -194,11 +200,17 @@ static int flashGameView(){
              * m: 该网格是一个地雷
              * h: 该网格是一个隐藏内容的格子
              * s: 该网格是一个被选中的格子
+             * f: 插旗的格子
+             * g: 被选中的旗子
             */
-            if(data >= '0' && data <= '8'){
+            if(data == 'h'){
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+            }
+            else if(data >= '0' && data <= '8'){
                 drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
                 if(data == '0') continue;
                 int color;
+                // 不同数字显示不同颜色
                 switch (data)
                 {
                 case '1':
@@ -230,11 +242,16 @@ static int flashGameView(){
             else if(data == 'm'){
                 drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
             }
-            else if(data == 'h'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
-            }
             else if(data == 's'){
                 drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
+            }
+            else if(data == 'f'){
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+                drawChar(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, 'F', pixSize-4, pixSize-4, 0x00ff0000);
+            }
+            else if(data == 'g'){
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
+                drawChar(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, 'F', pixSize-4, pixSize-4, 0x00ff0000);
             }
             else{
                 continue;
@@ -246,14 +263,17 @@ static int flashGameView(){
 }
 
 // 判断游戏胜利的条件
-static int gameIsWin(GameMap * showMap){
+static int gameIsWin(){
+
+    GameMap * showMap = game->showMap;
+
     int x, y;
     int hideNum = 0;
     for(y = 0; y<showMap->height; y++){
         for(x = 0; x<showMap->width; x++){
             char data;
             getMapData(showMap, x, y, &data);
-            if(data == 'h' || data == 's') hideNum++;
+            if(data == 'h' || data == 's' || data == 'f' || data == 'g') hideNum++;
         }
     }
     printf("gameIsWin: hideNum %d diffic %d \n", hideNum, showMap->diffic);
@@ -266,7 +286,9 @@ static int gameIsWin(GameMap * showMap){
 }
 
 
-static int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y){
+static int openGrid(int x, int y){
+    GameMap * sourceMap = game->sourceMap;
+    GameMap * showMap = game->showMap;
     // printf("openGrid: (%d, %d) \n", x, y);
     char data;
     // 判断要打开的格子的状态
@@ -287,11 +309,11 @@ static int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y){
                 for(i=x-1; i<x+2; i++){
                     if(i < 0) continue;
                     if(i >= showMap->width) break;
-                    openGrid(sourceMap, showMap, i, j);
+                    openGrid(i, j);
                 }
             }
         }
-        if(gameIsWin(showMap) == 1){
+        if(gameIsWin() == 1){
             return 6;
         }
         return 0;
@@ -353,25 +375,77 @@ int selectGrid(){
     char data;
     getMapData(maskMap, grid[0], grid[1], &data);
     int i, j;
-    if(data == 'h'){
+    
+    if(data == 'h' || data == 'f'){  // 判断是否可以被选中
+        // 清除上一次的选中
         for(j=0; j<maskMap->height; j++){
             for(i=0; i<maskMap->width; i++){
                 getMapData(maskMap, i, j, &data);
                 if(data == 's'){
                     setMapData(maskMap, i, j, 'h');
                 }
+                else if(data == 'g'){
+                    setMapData(maskMap, i, j, 'f');
+                }
             }
         }
+        
+        // 选中指定的格子
         printf("selectGrid: Select(%d, %d) \n", grid[0], grid[1]);
-        setMapData(maskMap, grid[0], grid[1], 's');
+        getMapData(maskMap, grid[0], grid[1], &data);
+        if(data == 'h'){
+            setMapData(maskMap, grid[0], grid[1], 's');
+        }
+        else if(data == 'f'){
+            setMapData(maskMap, grid[0], grid[1], 'g');
+        }
     }
 
     flashGameView();
     return 1;
 }
 
-int openSelectedGrid(){
+static int gameOver(){
+    GameMap * sourceMap = game->sourceMap;
+    GameMap * showMap = game->showMap;
 
+    int x, y;
+    for(y=0; y<showMap->height; y++){
+        for(x=0; x<showMap->width; x++){
+            char data;
+            getMapData(sourceMap, x, y, &data);
+            if(data == 'm'){
+                setMapData(showMap, x, y, 'm');
+            }
+        }
+    }
+    flashGameView();
+    game->state = 0;
+
+    return 1;
+}
+
+static int gameWin(){
+    GameMap * sourceMap = game->sourceMap;
+    GameMap * showMap = game->showMap;
+
+    int x, y;
+    for(y=0; y<showMap->height; y++){
+        for(x=0; x<showMap->width; x++){
+            char data;
+            getMapData(sourceMap, x, y, &data);
+            if(data == 'm'){
+                setMapData(showMap, x, y, 'f');
+            }
+        }
+    }
+    flashGameView();
+    game->state = 0;
+
+    return 1;
+}
+
+int openSelectedGrid(){
     GameMap * sourceMap = game->sourceMap;
     GameMap * showMap = game->showMap;
 
@@ -383,17 +457,59 @@ int openSelectedGrid(){
             char data;
             getMapData(showMap, x, y, &data);
             if(data == 's'){
-                openRes = openGrid(sourceMap, showMap, x, y);
+                openRes = openGrid(x, y);
             }
         }
     }
 
-    if (openRes == 1){
-        game->showMap = game->sourceMap;
+    if(openRes == 0){
+        flashGameView();
     }
+    else if (openRes == 1){
+        gameOver();
+    }
+    else if(openRes == 6){
+        gameWin();
+    }
+    return openRes;
+}
 
+// 将一个格子插旗
+static int flagGrid(int x, int y){
+    GameMap * showMap = game->showMap;
+
+    char data;
+    getMapData(showMap, x, y, &data);
+    if(data == 's'){
+        setMapData(showMap, x, y, 'f');
+        return 1;
+    }
+    else if(data == 'g'){
+        setMapData(showMap, x, y, 'h');
+        return 0;
+    }
+    else{
+        return -1;
+    }
+}
+
+int flagSelectedGrid(){
+    GameMap * sourceMap = game->sourceMap;
+    GameMap * showMap = game->showMap;
+
+    // 找到被选中的格子
+    int x, y;
+    int flagRes;
+    for(y=0; y<showMap->height; y++){
+        for(x=0; x<showMap->width; x++){
+            char data;
+            getMapData(showMap, x, y, &data);
+            if(data == 's' || data == 'g'){
+                flagRes = flagGrid(x, y);
+            }
+        }
+    }
     flashGameView();
-    return -1;
 }
 
 int restartSaolei(){
@@ -408,5 +524,6 @@ int restartSaolei(){
 	game->sourceMap = sourceMap;
 	game->showMap = showMap;
 
+    game->state = 1;
     flashGameView();
 }

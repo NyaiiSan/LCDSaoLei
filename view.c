@@ -199,6 +199,9 @@ static void touchEventFunction(View * view){
     case 2:
         openSelectedGrid();
         break;
+    case 3:
+        flagSelectedGrid();
+        break;
     case 4:
         restartSaolei();
         break;
