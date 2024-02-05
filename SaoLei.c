@@ -1,5 +1,21 @@
 #include "main.h"
 
+// 将ShowMap刷新到GameView中
+static int flashGameView();
+
+/**
+ * 打开一个格子
+ * 返回值:
+ * -1 打开失败
+ * 0 正常打开
+ * 1 打开后游戏失败
+ * 6 打开后游戏胜利
+*/
+static int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y);
+
+// 扫雷游戏
+SaoleiGame * game;
+
 // 改变图中一个点的数据
 static int setMapData(GameMap * map, int x, int y, char data){
     if(x < 0 | x >= map->width | y < 0 | y >= map->height){
@@ -117,7 +133,7 @@ static GameMap * creatMaskMap(GameMap * sourceMap){
 
 SaoleiGame * creatSaolei(){
     // 初始化游戏
-	SaoleiGame * game = malloc(sizeof(SaoleiGame)); //创建一个游戏
+	game = malloc(sizeof(SaoleiGame)); //创建一个游戏
 
 	// 创建一个游戏的两张基础图
 	GameMap * sourceMap = creatGameMap(8, 10, 10);
@@ -128,57 +144,60 @@ SaoleiGame * creatSaolei(){
 	game->showMap = showMap;
 
 	// 建立一个游戏View
-	View * gameView = creatView(600, 600, 0, 0);
-
-	flashGameCanvas(gameView->canvas, showMap);
+	View * gameView = creatView(1, 600, 600, 0, 0);
 
 	// 将两游戏Canvas添加到游戏中
 	game->gameView = gameView;
 
+    flashGameView();
+
     return game;
 }
 
-void delSaolei(SaoleiGame * game){
-    free(game->sourceMap->p);
-    free(game->sourceMap);
 
-    free(game->showMap->p);
-    free(game->showMap);
+static int flashGameView(){
+    View * view = game->gameView;
+    GameMap * map = game->showMap;
 
-    delView(game->gameView);
-
-    free(game);
-}
-
-int flashGameCanvas(Canvas * gameCanvas, GameMap * map){
+    // 刷新的时候锁定
+    view->state = 0;
 
     // 计算字符每个网格的像素宽度
     int pixSize;
-    int wpixSize = gameCanvas->width / map->width; // 宽度能取得的最大像素
-    int hpixSize = gameCanvas->height / map->height; // 高度能取得的最大像素
+    int wpixSize = view->canvas->width / map->width; // 宽度能取得的最大像素
+    int hpixSize = view->canvas->height / map->height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (gameCanvas->width - map->width * pixSize) / 2;
-    int ymargin = (gameCanvas->height - map->height * pixSize) / 2;
+    int xmargin = (view->canvas->width - map->width * pixSize) / 2;
+    int ymargin = (view->canvas->height - map->height * pixSize) / 2;
 
     // 绘制边框
     int x, y;
     for(y=1; y<map->height; y++){
-        drawRect(gameCanvas, xmargin, ymargin + pixSize * y, map->width*pixSize, 4, 0x0066ccff);
+        drawRect(view->canvas, xmargin, ymargin + pixSize * y, map->width*pixSize, 4, 0x0066ccff);
     }
     for(x=1; x<map->width; x++){
-        drawRect(gameCanvas, xmargin + pixSize * x, ymargin, 4, map->height*pixSize, 0x0066ccff);
+        drawRect(view->canvas, xmargin + pixSize * x, ymargin, 4, map->height*pixSize, 0x0066ccff);
     }
 
     // 绘制GameMap
     for(y=0; y<map->height; y++){
         for(x=0; x<map->width; x++){
-            drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
+            // 获取数据
             char data;
             getMapData(map, x, y, &data);
             // printf("(%d, %d) : %c \t", x, y, data);
-            if(data >= '1' && data <= '8'){
+            /**
+             * 判断数据的类型
+             * 0-9: 该网格是一个数字或空
+             * m: 该网格是一个地雷
+             * h: 该网格是一个隐藏内容的格子
+             * s: 该网格是一个被选中的格子
+            */
+            if(data >= '0' && data <= '8'){
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
+                if(data == '0') continue;
                 int color;
                 switch (data)
                 {
@@ -206,25 +225,27 @@ int flashGameCanvas(Canvas * gameCanvas, GameMap * map){
                     color = 0x00222222;
                     break;
                 }
-                drawChar(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
+                drawChar(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
             }
             else if(data == 'm'){
-                drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
             }
             else if(data == 'h'){
-                drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
             }
             else if(data == 's'){
-                drawRect(gameCanvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
+                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
             }
             else{
                 continue;
             }
         }
     }
+    view->state = 1; // 刷新结束解锁
     return 0;
 }
 
+// 判断游戏胜利的条件
 static int gameIsWin(GameMap * showMap){
     int x, y;
     int hideNum = 0;
@@ -244,8 +265,9 @@ static int gameIsWin(GameMap * showMap){
     }
 }
 
-int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y){
-    printf("openGrid: (%d, %d) \n", x, y);
+
+static int openGrid(GameMap * sourceMap, GameMap * showMap, int x, int y){
+    // printf("openGrid: (%d, %d) \n", x, y);
     char data;
     // 判断要打开的格子的状态
     getMapData(showMap, x, y, &data);
@@ -292,8 +314,11 @@ int getRelatPoints(View * view, Point * touchP, int * relatPoint){
     return 1;
 }
 
-int getTouchGrid(View * view, GameMap * map, int * relatP, int * res){
-// 获取相对坐标并绘制光标
+// 获取触摸到的网格并绘制光标
+static int getTouchGrid(int * res){
+    View * view = game->gameView;
+    GameMap * map = game->showMap;
+
     // 计算字符每个网格的像素宽度
     int pixSize;
     int wpixSize = view->canvas->width / map->width; // 宽度能取得的最大像素
@@ -303,6 +328,9 @@ int getTouchGrid(View * view, GameMap * map, int * relatP, int * res){
     // 计算外边距
     int xmargin = (view->canvas->width - map->width * pixSize) / 2;
     int ymargin = (view->canvas->height - map->height * pixSize) / 2;
+
+    // 相对坐标
+    int relatP[] = {view->event.value[0], view->event.value[1]};
 
     if(relatP[0] < xmargin || relatP[1] < ymargin){
         return -1;
@@ -315,11 +343,12 @@ int getTouchGrid(View * view, GameMap * map, int * relatP, int * res){
     return 1;
 }
 
-int selectGrid(View * gameView, GameMap * maskMap, int * relatPoints){
+int selectGrid(){
+    GameMap * maskMap = game->showMap;
 
     // 获取触摸的网格
     int grid[2];
-    getTouchGrid(gameView, maskMap, relatPoints, grid);
+    getTouchGrid(grid);
 
     char data;
     getMapData(maskMap, grid[0], grid[1], &data);
@@ -336,28 +365,48 @@ int selectGrid(View * gameView, GameMap * maskMap, int * relatPoints){
         printf("selectGrid: Select(%d, %d) \n", grid[0], grid[1]);
         setMapData(maskMap, grid[0], grid[1], 's');
     }
+
+    flashGameView();
     return 1;
 }
 
-int viewIsTouched(View * view, Point * touchP){
-    int t[2];
-    if(getRelatPoints(view, touchP, t) == -1){
-        return 0;
-    }
-    return 1;
-}
+int openSelectedGrid(){
 
-int openSelectedGrid(GameMap * sourceMap, GameMap * showMap){
+    GameMap * sourceMap = game->sourceMap;
+    GameMap * showMap = game->showMap;
+
     // 找到被选中的格子
     int x, y;
+    int openRes;
     for(y=0; y<showMap->height; y++){
         for(x=0; x<showMap->width; x++){
             char data;
             getMapData(showMap, x, y, &data);
             if(data == 's'){
-                return openGrid(sourceMap, showMap, x, y);
+                openRes = openGrid(sourceMap, showMap, x, y);
             }
         }
     }
+
+    if (openRes == 1){
+        game->showMap = game->sourceMap;
+    }
+
+    flashGameView();
     return -1;
+}
+
+int restartSaolei(){
+    free(game->showMap);
+    free(game->sourceMap);
+
+    // 创建一个游戏的两张基础图
+	GameMap * sourceMap = creatGameMap(8, 10, 10);
+    GameMap * showMap = creatMaskMap(sourceMap);
+	
+	// 将两张基础图添加到游戏中
+	game->sourceMap = sourceMap;
+	game->showMap = showMap;
+
+    flashGameView();
 }

@@ -96,23 +96,23 @@ int buflash(Canvas * canvas, Canvas * buf, int sx, int sy){
     return 1;
 }
 
-Canvas getBmpImg(char * path){
+Canvas * getBmpImg(char * path){
     BmpImg * img = openBmpImg(path);
-    Canvas image;
-	image.width = img->width;
-	image.height = img->height;
-	image.p = malloc(image.width * image.height * sizeof(int));
+    Canvas * image = malloc(sizeof(Canvas));
+	image->width = img->width;
+	image->height = img->height;
+	image->p = malloc(image->width * image->height * sizeof(int));
 
 	int x, y;
 	int bufSize = 0;
 
     // 将图片保存到Canvas
-	for(y=0; y<image.height; y++){
-		for(x=0; x<image.width; x++){
+	for(y=0; y<image->height; y++){
+		for(x=0; x<image->width; x++){
 			char * cp = (img->p + (img->depth/8) * (y * img->width + x));
 			int color = 0;
 			color = *cp | *(cp+1) << 8 | *(cp+2) << 16;
-			*(image.p + (image.width * image.height) - (image.width * y + (image.width) - x)) = color;
+			*(image->p + (image->width * image->height) - (image->width * y + (image->width) - x)) = color;
 			bufSize ++;
 		}
 	}

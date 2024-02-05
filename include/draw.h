@@ -58,7 +58,7 @@ int drawTaiji(Canvas * canvas, int sx, int sy, int r);
 int buflash(Canvas * canvas, Canvas * buf, int x, int y);
 
 // 将图片转化成Canvas
-Canvas getBmpImg(char * path);
+Canvas * getBmpImg(char * path);
 
 // 显示一张图片
 int showBmpImg(Canvas * canvas, BmpImg * img, int x, int y);
