@@ -244,3 +244,20 @@ int drawChar(Canvas * canvas, int sx, int sy, char c, int width, int height, int
 
     return 1;
 }
+
+int drawString(Canvas * canvas, int x, int y, char * str, int size, int color){
+    // 计算字符串的长度
+    int length = strlen(str);
+
+    // 设置一个字符间距
+    int space = 0.7 * size;
+
+    //绘制每一个字符
+    int i;
+    for(i=0; i<length; i++){
+        drawChar(canvas, x + space*i, y, *str, space, size, color);
+        str++;
+    }
+
+    return 1;
+}

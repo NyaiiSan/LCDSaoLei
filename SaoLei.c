@@ -149,6 +149,9 @@ SaoleiGame * creatSaolei(){
 	// 将两游戏Canvas添加到游戏中
 	game->gameView = gameView;
 
+    // 为Game添加一个计时器
+    game->timer = creaTimer(10, 150, 25, 700, 0);
+
     game->state = 1;
 
     flashGameView();
@@ -194,6 +197,8 @@ static int flashGameView(){
             char data;
             getMapData(map, x, y, &data);
             // printf("(%d, %d) : %c \t", x, y, data);
+            int sx = xmargin + x*pixSize+4; // 绘制的格子x轴起始坐标
+            int sy = ymargin + y*pixSize+4; // 绘制的格子y轴起始坐标
             /**
              * 判断数据的类型
              * 0-9: 该网格是一个数字或空
@@ -204,10 +209,10 @@ static int flashGameView(){
              * g: 被选中的旗子
             */
             if(data == 'h'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00888888);
             }
             else if(data >= '0' && data <= '8'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffffff);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00ffffff);
                 if(data == '0') continue;
                 int color;
                 // 不同数字显示不同颜色
@@ -237,21 +242,21 @@ static int flashGameView(){
                     color = 0x00222222;
                     break;
                 }
-                drawChar(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, data, pixSize-4, pixSize-4, color);
+                drawChar(view->canvas, sx, sy, data, pixSize-4, pixSize-4, color);
             }
             else if(data == 'm'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ff0000);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00ff0000);
             }
             else if(data == 's'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00ffcc66);
             }
             else if(data == 'f'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00888888);
-                drawChar(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, 'F', pixSize-4, pixSize-4, 0x00ff0000);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00888888);
+                drawChar(view->canvas, sx, sy, 'F', pixSize-4, pixSize-4, 0x00ff0000);
             }
             else if(data == 'g'){
-                drawRect(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, pixSize-4, pixSize-4, 0x00ffcc66);
-                drawChar(view->canvas, xmargin + x*pixSize+4, ymargin + y*pixSize+4, 'F', pixSize-4, pixSize-4, 0x00ff0000);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00ffcc66);
+                drawChar(view->canvas, sx, sy, 'F', pixSize-4, pixSize-4, 0x00ff0000);
             }
             else{
                 continue;

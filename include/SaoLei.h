@@ -16,6 +16,7 @@ typedef struct{
     View * gameView;
     GameMap * sourceMap;
     GameMap * showMap;
+    Timer * timer; // 游戏中嵌入一个计时器
     char state;
 }SaoleiGame;
 

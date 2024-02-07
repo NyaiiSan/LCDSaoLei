@@ -209,3 +209,57 @@ static void touchEventFunction(View * view){
         break;
     }
 }
+
+static int timeReset(Timer * timer);
+
+Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY){
+    // 创建一个Timer
+    Timer * timer = malloc(sizeof(Timer));
+
+    // 初始化Timer
+    View * view = creatView(id, width, height, marginsX, marginsY);
+    timer->view = view;
+    timer->t = 0;
+    timer->cmd[0] = 0;
+    timer->state = 0;
+}
+
+static void * timeRun(void * argv){
+    printf("timerStart: Start timer thread \n");
+    Timer * timer = argv;
+    // 设置起始时间
+    timer->startTime = time(NULL);
+    printf("timerStart: Start timer while \n");
+    // 循环计时
+    while(1){
+        usleep(1000000);
+        timer->view->state = 0;
+        // 接受命令
+        if(timer->cmd[0] == 0){
+            // 计算时间
+            timer->t = time(NULL) - timer->startTime;
+            // 显示这个事件
+            char timeStr[32];
+            sprintf(timeStr, "%d", timer->t);
+            clearCanvas(timer->view->canvas, 0x00ffffff);
+            drawString(timer->view->canvas, 0, 0, timeStr, timer->view->canvas->height, 0x00ff0000);
+        }
+        else if(timer->cmd[0] == 1){
+            timeReset(timer);
+            timer->cmd[0] = 0;
+        }
+        else{
+            timer->cmd[0] = 0;
+        }
+        timer->view->state = 1;
+    }
+}
+
+static int timeReset(Timer * timer){
+    timer->startTime = time(NULL);
+}
+
+void timeStart(Timer * timer){
+    //创建线程运行timer
+    pthread_create(&timer->thread, NULL, timeRun, (void *)timer);
+}

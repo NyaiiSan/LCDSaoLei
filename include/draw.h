@@ -78,4 +78,12 @@ int drawAnimeGrad(Canvas * canvas, Canvas buf, Anime anime);
 */
 int drawChar(Canvas * canvas, int x, int y, char c, int width, int height, int color);
 
+/**
+ * 在画布上绘制一个字串
+ * x, y: 要绘制到画布上的坐标
+ * size: 字符的大小
+ * color: 字符的颜色
+*/
+int drawString(Canvas * canvas, int x, int y, char * str, int size, int color);
+
 #endif

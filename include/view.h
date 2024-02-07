@@ -53,5 +53,23 @@ void * threadFlashView(void * argv);
 */
 void initTouchEvent(View * screen);
 
+/*********************
+ * Timer
+**********************/
+// 计时器对象
+typedef struct{
+    View * view;
+    int t;
+    unsigned startTime;
+    pthread_t thread;
+    char cmd[4];
+    char state;
+}Timer;
+
+// 创建并初始化一个计时器
+Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY);
+
+// 运行一个计时器
+void timeStart(Timer * timer);
 
 #endif

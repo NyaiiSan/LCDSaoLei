@@ -49,17 +49,22 @@ int main(int argc, char * argv[]){
 	View * setFlag = creatView(3, 100, 100, 850, 50);
 	clearCanvas(setFlag->canvas, 0x00ff0000);
 
-	// 新建一个点击Canvas 功能重新开始游戏
+	// 新建一个View 功能重新开始游戏
 	View * restartGame = creatView(4, 100, 100, 700, 250);
 	clearCanvas(restartGame->canvas, 0x0000ffff);
 
 	// 初始化一个游戏
 	SaoleiGame * game = creatSaolei();
 
+	//注册所有的View
 	addView(screen, openGrid);
 	addView(screen, setFlag);
 	addView(screen, restartGame);
 	addView(screen, game->gameView);
+	addView(screen, game->timer->view);
+
+	// 开始游戏计时器
+	timeStart(game->timer);
 
 	// 建立新线程刷新屏幕
 	pthread_t t;
@@ -73,8 +78,12 @@ int main(int argc, char * argv[]){
 	initTouchEvent(screen);
 
 	while(1){
-		usleep(5000);
-		
+		char cmd[4];
+		fgets(cmd, 4, stdin);
+		int i;
+		for(i=0; i<4; i++){
+			game->timer->cmd[i] = cmd[i] - '0';
+		}
 	}
 
 	usleep(1000000);
