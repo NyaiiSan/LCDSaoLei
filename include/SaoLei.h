@@ -3,6 +3,8 @@
 
 #include "main.h"
 
+#define HIDE_COLOR 0x00666666
+
 typedef struct{
     int sx;
     int sy;

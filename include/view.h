@@ -39,11 +39,6 @@ int delView(View * view);
 int addView(View * targetView, View * view);
 
 /**
- * 刷新View
-*/
-int flashView(View * view);
-
-/**
  * 新线程中刷新View
 */
 void * threadFlashView(void * argv);
@@ -64,10 +59,11 @@ typedef struct{
     pthread_t thread;
     char cmd[4];
     char state;
+    int color;
 }Timer;
 
 // 创建并初始化一个计时器
-Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY);
+Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY, int color);
 
 // 运行一个计时器
 void timeStart(Timer * timer);

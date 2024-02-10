@@ -78,7 +78,6 @@ static GameMap * creatSourceMap(){
         char data;
         getMapData(map, mx, my, &data);
         if(data != 'm'){
-            printf("Make mine: (%d, %d) \n", mx, my);
             setMapData(map, mx, my, 'm');
             m++;
         }
@@ -158,7 +157,7 @@ SaoleiGame * creatSaolei(){
 	game->gameView = gameView;
 
     // 为Game添加一个计时器
-    game->timer = creaTimer(10, 150, 25, 700, 0);
+    game->timer = creaTimer(10, 150, 40, 920, 10, 0xffcc66);
 
     game->startPoint[0] = -1;
     game->startPoint[1] = -1;
@@ -175,9 +174,6 @@ static int flashGameView(){
     if(game->state == 0){
         return -1;
     }
-
-    // 刷新的时候锁定
-    view->state = 0;
 
     // 计算字符每个网格的像素宽度
     int pixSize;
@@ -217,10 +213,10 @@ static int flashGameView(){
              * g: 被选中的旗子
             */
             if(data == 'h'){
-                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00888888);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, HIDE_COLOR);
             }
             else if(data >= '0' && data <= '8'){
-                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00ffffff);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, -1);
                 if(data == '0') continue;
                 int color;
                 // 不同数字显示不同颜色
@@ -259,7 +255,7 @@ static int flashGameView(){
                 drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00ffcc66);
             }
             else if(data == 'f'){
-                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, 0x00888888);
+                drawRect(view->canvas, sx, sy, pixSize-4, pixSize-4, HIDE_COLOR);
                 drawChar(view->canvas, sx, sy, 'F', pixSize-4, pixSize-4, 0x00ff0000);
             }
             else if(data == 'g'){
@@ -269,12 +265,8 @@ static int flashGameView(){
             else{
                 continue;
             }
-            printf("%c ", data);
         }
-        puts("");
     }
-    view->state = 1; // 刷新结束解锁
-    printf("Flash Map Over \n");
     return 0;
 }
 
@@ -304,7 +296,6 @@ static int gameIsWin(){
 
 static int openGrid(int x, int y){
     // 判断是否是第一次点开，第一次点开重新布局并开始计时器
-    printf("openGrid: GameState %d \n", game->state);
     if(game->state == 7){
         game->startPoint[0] = x;
         game->startPoint[1] = y;

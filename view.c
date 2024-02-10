@@ -41,7 +41,7 @@ int addView(View * targetView, View * view){
     return 1;
 }
 
-int flashView(View * view){
+static int flashView(View * view, Canvas * frame, int x, int y){
 
     int flashedNum = 0;
     if(view->subViewsNum == 0){
@@ -50,9 +50,9 @@ int flashView(View * view){
 
     int i;
     for(i=0; i<view->subViewsNum; i++){
-        if(view->subViews[i]->state == 0) continue;
-        flashedNum += flashView(view->subViews[i]);
-        buflash(view->canvas, view->subViews[i]->canvas, view->subViews[i]->marginsX, view->subViews[i]->marginsY);
+        if(view->subViews[i]->state == 0) continue; // 判断view是否为可刷新状态
+        buflash(frame, view->subViews[i]->canvas, view->subViews[i]->marginsX + x, view->subViews[i]->marginsY + y); // 刷新本身
+        flashedNum += flashView(view->subViews[i], frame, view->subViews[i]->marginsX, view->subViews[i]->marginsY); // 刷新子项
         flashedNum++;
     }
 
@@ -60,61 +60,23 @@ int flashView(View * view){
 }
 
 void * threadFlashView(void * argv){
+    View * screen = argv;
+    // 新建一个帧缓冲区
+    Canvas frame;
+    frame.width = screen->canvas->width;
+    frame.height = screen->canvas->height;
+    frame.p = malloc(sizeof(int) * frame.height * frame.width);
     while(1){
-        int flashNum = flashView(argv);
-        // printf("threadFlashView: Flash: %d \n", flashNum);
-        usleep(33000);
+        //清空并刷新一帧画面
+        clearCanvas(&frame, -1);
+        flashView(screen, &frame, 0, 0);
+        buflash(screen->canvas, &frame, 0, 0);
+
+        // 帧绘制延迟
+        usleep(16000);
     }
 }
 
-// 获取一个View在屏幕上的位置
-// static Point * getViewPosi(View * screen, View * view){
-//     // 初始化一个坐标
-//     Point * posi = malloc(sizeof(Point));
-//     posi->x = screen->marginsX;
-//     posi->y = screen->marginsY;
-
-//     // 在screen中寻找这个view
-//     int i;
-//     for(i=0; i<screen->subViewsNum; i++){
-//         if(screen->subViews[i] == view){
-//             posi->x += view->marginsX;
-//             posi->y += view->marginsY;
-//             return posi;
-//         }
-//         Point * tPoint = getViewPosi(screen->subViews[i], view);
-//         if(tPoint != NULL){
-//             posi->x += tPoint->x;
-//             posi->y += tPoint->y;
-//             free(tPoint);
-//             return posi;
-//         }
-//     }
-//     free(posi);
-//     return NULL;
-// }
-
-// 获取触控点相对View的坐标
-// static Point * getRelatCoor(View * screen, View * view, Point * touchP){
-//     // 获取View在屏幕上的位置
-//     Point * viewPosi = getViewPosi(screen, view);
-
-//     Point *relaCoor;
-
-//     // 判断触点是否在View的内部
-//     if(touchP->x < viewPosi->x | touchP->x > viewPosi->x + view->canvas->width |\
-//        touchP->y < viewPosi->y | touchP->y > viewPosi->y + view->canvas->height){
-//         relaCoor = NULL;
-//     }
-//     else{
-//         relaCoor = malloc(sizeof(Point));
-//         relaCoor->x = touchP->x - viewPosi->x;
-//         relaCoor->y = touchP->y - viewPosi->y;
-//     }
-    
-//     free(viewPosi);
-//     return relaCoor;
-// }
 static void touchEventFunction(View * view);
 
 static void updateTouchEvent(View *view, Point *relatP){
@@ -212,7 +174,7 @@ static void touchEventFunction(View * view){
 
 static int timeReset(Timer * timer);
 
-Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY){
+Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY, int color){
     // 创建一个Timer
     Timer * timer = malloc(sizeof(Timer));
 
@@ -222,6 +184,9 @@ Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY){
     timer->t = 0;
     timer->cmd[0] = 0;
     timer->state = 0;
+    timer->color = color;
+
+    return timer;
 }
 
 static void * timeRun(void * argv){
@@ -233,16 +198,10 @@ static void * timeRun(void * argv){
     // 循环计时
     while(1){
         usleep(100000);
-        timer->view->state = 0;
         // 接受命令
         if(timer->cmd[0] == 0){
             // 计算时间
             timer->t = time(NULL) - timer->startTime;
-            // 显示这个事件
-            char timeStr[32];
-            sprintf(timeStr, "%d", timer->t);
-            clearCanvas(timer->view->canvas, 0x00ffffff);
-            drawString(timer->view->canvas, 0, 0, timeStr, timer->view->canvas->height, 0x00ff0000);
         }
         else if(timer->cmd[0] == 1){
             timeReset(timer);
@@ -254,23 +213,22 @@ static void * timeRun(void * argv){
         else if(timer->cmd[0] == 3){
             timeReset(timer);
             // 计算时间
-            timer->t = time(NULL) - timer->startTime;
-            // 显示这个事件
-            char timeStr[32];
-            sprintf(timeStr, "%d", timer->t);
-            clearCanvas(timer->view->canvas, 0x00ffffff);
-            drawString(timer->view->canvas, 0, 0, timeStr, timer->view->canvas->height, 0x00ff0000);
             timer->cmd[0] = 2;
         }
         else{
             timer->cmd[0] = 0;
         }
-        timer->view->state = 1;
+        // 显示这个事件
+            char timeStr[32];
+            sprintf(timeStr, "%d", timer->t);
+            clearCanvas(timer->view->canvas, -1);
+            drawString(timer->view->canvas, 0, 0, timeStr, timer->view->canvas->height, timer->color);
     }
 }
 
 static int timeReset(Timer * timer){
     timer->startTime = time(NULL);
+    timer->t = 0;
 }
 
 void timeStart(Timer * timer){

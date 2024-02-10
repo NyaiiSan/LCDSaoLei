@@ -250,7 +250,7 @@ int drawString(Canvas * canvas, int x, int y, char * str, int size, int color){
     int length = strlen(str);
 
     // 设置一个字符间距
-    int space = 0.7 * size;
+    int space = 0.5 * size;
 
     //绘制每一个字符
     int i;
