@@ -138,7 +138,7 @@ static void updateTouchEvent(View *view, Point *relatP){
     view->event.value[0] = relatP->x;
     view->event.value[1] = relatP->y;
 
-    printf("updateTouchEvent: View %d have Event. relatP(%d, %d) \n", view->id, view->event.value[0], view->event.value[1]);
+    // printf("updateTouchEvent: View %d have Event. relatP(%d, %d) \n", view->id, view->event.value[0], view->event.value[1]);
     touchEventFunction(view);
 
     for(i=0; i<view->subViewsNum; i++){
@@ -162,7 +162,7 @@ static void * updateTouchEvent_t(void * argv){
         usleep(1000);
         if(touchP->x < 0) continue;
 
-        printf("updateTouchEvent_t: TouchP-(%d, %d) \n", touchP->x, touchP->y);
+        // printf("updateTouchEvent_t: TouchP-(%d, %d) \n", touchP->x, touchP->y);
         updateTouchEvent(screen, touchP);
         touchP->x = -1;
         touchP->y = -1;
@@ -232,7 +232,7 @@ static void * timeRun(void * argv){
     printf("timerStart: Start timer while \n");
     // 循环计时
     while(1){
-        usleep(1000000);
+        usleep(100000);
         timer->view->state = 0;
         // 接受命令
         if(timer->cmd[0] == 0){
@@ -247,6 +247,20 @@ static void * timeRun(void * argv){
         else if(timer->cmd[0] == 1){
             timeReset(timer);
             timer->cmd[0] = 0;
+        }
+        else if(timer->cmd[0] == 2){
+            continue;
+        }
+        else if(timer->cmd[0] == 3){
+            timeReset(timer);
+            // 计算时间
+            timer->t = time(NULL) - timer->startTime;
+            // 显示这个事件
+            char timeStr[32];
+            sprintf(timeStr, "%d", timer->t);
+            clearCanvas(timer->view->canvas, 0x00ffffff);
+            drawString(timer->view->canvas, 0, 0, timeStr, timer->view->canvas->height, 0x00ff0000);
+            timer->cmd[0] = 2;
         }
         else{
             timer->cmd[0] = 0;

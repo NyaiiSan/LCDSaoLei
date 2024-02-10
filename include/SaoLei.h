@@ -4,19 +4,20 @@
 #include "main.h"
 
 typedef struct{
-    int width;  // 宽度
-    int height; // 高度
     int sx;
     int sy;
-    int diffic; // 地雷的数量
     char * p;   // 存储地图的数组
 }GameMap;
 
 typedef struct{
     View * gameView;
+    int width;
+    int height;
+    int diffic;
     GameMap * sourceMap;
     GameMap * showMap;
     Timer * timer; // 游戏中嵌入一个计时器
+    int startPoint[2]; // 第一次点击的格子
     char state;
 }SaoleiGame;
 

@@ -56,6 +56,7 @@ int main(int argc, char * argv[]){
 	// 初始化一个游戏
 	SaoleiGame * game = creatSaolei();
 
+	// printf("main: game create over \n");
 	//注册所有的View
 	addView(screen, openGrid);
 	addView(screen, setFlag);
@@ -78,12 +79,7 @@ int main(int argc, char * argv[]){
 	initTouchEvent(screen);
 
 	while(1){
-		char cmd[4];
-		fgets(cmd, 4, stdin);
-		int i;
-		for(i=0; i<4; i++){
-			game->timer->cmd[i] = cmd[i] - '0';
-		}
+		usleep(100000);
 	}
 
 	usleep(1000000);

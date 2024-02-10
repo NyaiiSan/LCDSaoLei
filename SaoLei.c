@@ -18,21 +18,21 @@ SaoleiGame * game;
 
 // 改变图中一个点的数据
 static int setMapData(GameMap * map, int x, int y, char data){
-    if(x < 0 | x >= map->width | y < 0 | y >= map->height){
+    if(x < 0 | x >= game->width | y < 0 | y >= game->height){
         printf("setMapData: (%d, %d) beyond Map \n", x, y);
         return -1;
     }
-    *(map->p + map->width * y + x) = data;
+    *(map->p + game->width * y + x) = data;
     return 1;
 }
 
 // 获取图中一个点的数据
 static int getMapData(GameMap * map, int x, int y, char * data){
-    if(x < 0 | x >= map->width | y < 0 | y >= map->height){
+    if(x < 0 | x >= game->width | y < 0 | y >= game->height){
         printf("getMapData: (%d, %d) beyond Map \n", x, y);
         return -1;
     }
-    *data = *(map->p + map->width * y + x);
+    *data = *(map->p + game->width * y + x);
     return 1;
 }
 
@@ -42,10 +42,10 @@ static int countMine(GameMap * map, int x, int y){
     int i,j;
     for(j=y-1; j<y+2; j++){
         if(j < 0) continue;
-        else if(j >= map->height) break;
+        else if(j >= game->height) break;
         for(i=x-1; i<x+2; i++){
             if(i < 0) continue;
-            else if(i >= map->width) break;
+            else if(i >= game->width) break;
 
             char data;
             if(getMapData(map, i, j, &data) == -1) continue;
@@ -55,33 +55,38 @@ static int countMine(GameMap * map, int x, int y){
     return count;
 }
 
-static int initSourceMap(GameMap * map){
+static GameMap * creatSourceMap(){
+    GameMap * map = malloc(sizeof(GameMap));
+    map->p = malloc(game->width * game->height);
+
+    // 初始化Map
     int x, y;
-    for(y=0;y<map->height;y++){
-        for(x=0;x<map->width;x++){
+    for(y=0;y<game->height;y++){
+        for(x=0;x<game->width;x++){
             setMapData(map, x, y, '0');
         }
     }
 
     // 生成地雷的位置
-    int i = 0;
+    int m = 0;
     while(1){
-        if(i == map->diffic) break;
+        if(m == game->diffic) break;
         // 计算地雷生成的坐标
-        int mx = randuint(0, map->width);
-        int my = randuint(0, map->height);
+        int mx = randuint(0, game->width);
+        int my = randuint(0, game->height);
+        if(mx == game->startPoint[0] && my == game->startPoint[1]) continue;
         char data;
         getMapData(map, mx, my, &data);
         if(data != 'm'){
-            // printf("Make mine: (%d, %d) \n", mx, my);
+            printf("Make mine: (%d, %d) \n", mx, my);
             setMapData(map, mx, my, 'm');
-            i++;
+            m++;
         }
     }
 
     // 计算数字
-    for(y=0; y<map->height; y++){
-        for(x=0; x<map->width; x++){
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
             // 判断格子是不是地雷
             char data;
             getMapData(map, x, y, &data);
@@ -95,76 +100,79 @@ static int initSourceMap(GameMap * map){
         }
     }
 
-    return 1;
-}
-
-static int initMaskMap(GameMap * map){
-    int x, y;
-    for(y=0; y<map->height; y++){
-        for(x=0; x<map->width; x++){
-            setMapData(map, x, y, 'h');
-        }
-    }
-}
-
-static GameMap * creatGameMap(int width, int height, int n){
-    GameMap * map = malloc(sizeof(GameMap));
-    map->width = width;
-    map->height = height;
-    map->diffic = n;
-    map->p = malloc(width * height);
-
-    initSourceMap(map);
-    
     return map;
 }
 
-static GameMap * creatMaskMap(GameMap * sourceMap){
-    GameMap * maskMap = malloc(sizeof(GameMap));
-    maskMap->width = sourceMap->width;
-    maskMap->height = sourceMap->height;
-    maskMap->diffic = sourceMap->diffic;
-    maskMap->p = malloc(maskMap->width*maskMap->height);
+static GameMap * creatShowMap(){
+    GameMap * showMap = malloc(sizeof(GameMap));
+    showMap->p = malloc(game->width*game->height);
 
-    initMaskMap(maskMap);
+    int x, y;
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
+            setMapData(showMap, x, y, 'h');
+        }
+    }
 
-    return maskMap;
+    return showMap;
+}
+
+// 初始化
+static void initSaolei(SaoleiGame * game){
+    printf("initSaolei: SaoLei Init  \n");
+    if(game->sourceMap){
+        free(game->sourceMap);
+    }
+    if(game->showMap){
+        free(game->showMap);
+    }
+
+    // 创建一个游戏的两张基础图
+	GameMap * sourceMap = creatSourceMap();
+    GameMap * showMap = creatShowMap();
+    
+    game->sourceMap = sourceMap;
+    game->showMap = showMap;
+
+    game->state = 1;
+    game->timer->cmd[0] = 3;
+    flashGameView();
 }
 
 SaoleiGame * creatSaolei(){
-    // 初始化游戏
 	game = malloc(sizeof(SaoleiGame)); //创建一个游戏
-
-	// 创建一个游戏的两张基础图
-	GameMap * sourceMap = creatGameMap(8, 10, 10);
-    GameMap * showMap = creatMaskMap(sourceMap);
 	
+    // 设置游戏规格
+    game->width = 8;
+    game->height = 10;
+    game->diffic = 10;
+
 	// 将两张基础图添加到游戏中
-	game->sourceMap = sourceMap;
-	game->showMap = showMap;
+	game->sourceMap = NULL;
+	game->showMap = NULL;
 
 	// 建立一个游戏View
 	View * gameView = creatView(1, 600, 600, 0, 0);
 
-	// 将两游戏Canvas添加到游戏中
+	// 游戏View添加到游戏中
 	game->gameView = gameView;
 
     // 为Game添加一个计时器
     game->timer = creaTimer(10, 150, 25, 700, 0);
 
-    game->state = 1;
-
-    flashGameView();
+    game->startPoint[0] = -1;
+    game->startPoint[1] = -1;
+    initSaolei(game);
+    game->state = 7;
 
     return game;
 }
-
 
 static int flashGameView(){
     View * view = game->gameView;
     GameMap * map = game->showMap;
 
-    if(game->state != 1){
+    if(game->state == 0){
         return -1;
     }
 
@@ -173,26 +181,26 @@ static int flashGameView(){
 
     // 计算字符每个网格的像素宽度
     int pixSize;
-    int wpixSize = view->canvas->width / map->width; // 宽度能取得的最大像素
-    int hpixSize = view->canvas->height / map->height; // 高度能取得的最大像素
+    int wpixSize = view->canvas->width / game->width; // 宽度能取得的最大像素
+    int hpixSize = view->canvas->height / game->height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (view->canvas->width - map->width * pixSize) / 2;
-    int ymargin = (view->canvas->height - map->height * pixSize) / 2;
+    int xmargin = (view->canvas->width - game->width * pixSize) / 2;
+    int ymargin = (view->canvas->height - game->height * pixSize) / 2;
 
     // 绘制边框
     int x, y;
-    for(y=1; y<map->height; y++){
-        drawRect(view->canvas, xmargin, ymargin + pixSize * y, map->width*pixSize, 4, 0x0066ccff);
+    for(y=1; y<game->height; y++){
+        drawRect(view->canvas, xmargin, ymargin + pixSize * y, game->width*pixSize, 4, 0x0066ccff);
     }
-    for(x=1; x<map->width; x++){
-        drawRect(view->canvas, xmargin + pixSize * x, ymargin, 4, map->height*pixSize, 0x0066ccff);
+    for(x=1; x<game->width; x++){
+        drawRect(view->canvas, xmargin + pixSize * x, ymargin, 4, game->height*pixSize, 0x0066ccff);
     }
 
     // 绘制GameMap
-    for(y=0; y<map->height; y++){
-        for(x=0; x<map->width; x++){
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
             // 获取数据
             char data;
             getMapData(map, x, y, &data);
@@ -261,9 +269,12 @@ static int flashGameView(){
             else{
                 continue;
             }
+            printf("%c ", data);
         }
+        puts("");
     }
     view->state = 1; // 刷新结束解锁
+    printf("Flash Map Over \n");
     return 0;
 }
 
@@ -274,15 +285,15 @@ static int gameIsWin(){
 
     int x, y;
     int hideNum = 0;
-    for(y = 0; y<showMap->height; y++){
-        for(x = 0; x<showMap->width; x++){
+    for(y = 0; y<game->height; y++){
+        for(x = 0; x<game->width; x++){
             char data;
             getMapData(showMap, x, y, &data);
             if(data == 'h' || data == 's' || data == 'f' || data == 'g') hideNum++;
         }
     }
-    printf("gameIsWin: hideNum %d diffic %d \n", hideNum, showMap->diffic);
-    if(hideNum == showMap->diffic){
+    printf("gameIsWin: hideNum %d diffic %d \n", hideNum, game->diffic);
+    if(hideNum == game->diffic){
         return 1;
     }
     else{
@@ -292,6 +303,17 @@ static int gameIsWin(){
 
 
 static int openGrid(int x, int y){
+    // 判断是否是第一次点开，第一次点开重新布局并开始计时器
+    printf("openGrid: GameState %d \n", game->state);
+    if(game->state == 7){
+        game->startPoint[0] = x;
+        game->startPoint[1] = y;
+        free(game->sourceMap);
+        game->sourceMap = creatSourceMap();
+        game->state = 1;
+        game->timer->cmd[0] = 1;
+    }
+
     GameMap * sourceMap = game->sourceMap;
     GameMap * showMap = game->showMap;
     // printf("openGrid: (%d, %d) \n", x, y);
@@ -304,16 +326,17 @@ static int openGrid(int x, int y){
 
     // 获取格子中的实际内容
     getMapData(sourceMap, x, y, &data);
+    printf("openGrid: Opened(%d, %d): %c \n", x, y, data);
     if(data >= '0' && data <= '8'){ // 点到一个数字，揭开这一个格子
         setMapData(showMap, x, y, data);
         if(data == '0'){
             int i, j;
             for(j=y-1; j<y+2; j++){
                 if(j < 0) continue;
-                if(j >= showMap->height) break;
+                if(j >= game->height) break;
                 for(i=x-1; i<x+2; i++){
                     if(i < 0) continue;
-                    if(i >= showMap->width) break;
+                    if(i >= game->width) break;
                     openGrid(i, j);
                 }
             }
@@ -348,13 +371,13 @@ static int getTouchGrid(int * res){
 
     // 计算字符每个网格的像素宽度
     int pixSize;
-    int wpixSize = view->canvas->width / map->width; // 宽度能取得的最大像素
-    int hpixSize = view->canvas->height / map->height; // 高度能取得的最大像素
+    int wpixSize = view->canvas->width / game->width; // 宽度能取得的最大像素
+    int hpixSize = view->canvas->height / game->height; // 高度能取得的最大像素
     pixSize = wpixSize > hpixSize ? hpixSize : wpixSize;
 
     // 计算外边距
-    int xmargin = (view->canvas->width - map->width * pixSize) / 2;
-    int ymargin = (view->canvas->height - map->height * pixSize) / 2;
+    int xmargin = (view->canvas->width - game->width * pixSize) / 2;
+    int ymargin = (view->canvas->height - game->height * pixSize) / 2;
 
     // 相对坐标
     int relatP[] = {view->event.value[0], view->event.value[1]};
@@ -371,38 +394,38 @@ static int getTouchGrid(int * res){
 }
 
 int selectGrid(){
-    GameMap * maskMap = game->showMap;
+    GameMap * showMap = game->showMap;
 
     // 获取触摸的网格
     int grid[2];
     getTouchGrid(grid);
 
     char data;
-    getMapData(maskMap, grid[0], grid[1], &data);
+    getMapData(showMap, grid[0], grid[1], &data);
     int i, j;
     
     if(data == 'h' || data == 'f'){  // 判断是否可以被选中
         // 清除上一次的选中
-        for(j=0; j<maskMap->height; j++){
-            for(i=0; i<maskMap->width; i++){
-                getMapData(maskMap, i, j, &data);
+        for(j=0; j<game->height; j++){
+            for(i=0; i<game->width; i++){
+                getMapData(showMap, i, j, &data);
                 if(data == 's'){
-                    setMapData(maskMap, i, j, 'h');
+                    setMapData(showMap, i, j, 'h');
                 }
                 else if(data == 'g'){
-                    setMapData(maskMap, i, j, 'f');
+                    setMapData(showMap, i, j, 'f');
                 }
             }
         }
         
         // 选中指定的格子
         printf("selectGrid: Select(%d, %d) \n", grid[0], grid[1]);
-        getMapData(maskMap, grid[0], grid[1], &data);
+        getMapData(showMap, grid[0], grid[1], &data);
         if(data == 'h'){
-            setMapData(maskMap, grid[0], grid[1], 's');
+            setMapData(showMap, grid[0], grid[1], 's');
         }
         else if(data == 'f'){
-            setMapData(maskMap, grid[0], grid[1], 'g');
+            setMapData(showMap, grid[0], grid[1], 'g');
         }
     }
 
@@ -415,8 +438,8 @@ static int gameOver(){
     GameMap * showMap = game->showMap;
 
     int x, y;
-    for(y=0; y<showMap->height; y++){
-        for(x=0; x<showMap->width; x++){
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
             char data;
             getMapData(sourceMap, x, y, &data);
             if(data == 'm'){
@@ -426,6 +449,7 @@ static int gameOver(){
     }
     flashGameView();
     game->state = 0;
+    game->timer->cmd[0] = 2;
 
     return 1;
 }
@@ -435,8 +459,8 @@ static int gameWin(){
     GameMap * showMap = game->showMap;
 
     int x, y;
-    for(y=0; y<showMap->height; y++){
-        for(x=0; x<showMap->width; x++){
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
             char data;
             getMapData(sourceMap, x, y, &data);
             if(data == 'm'){
@@ -446,6 +470,7 @@ static int gameWin(){
     }
     flashGameView();
     game->state = 0;
+    game->timer->cmd[0] = 2;
 
     return 1;
 }
@@ -457,8 +482,8 @@ int openSelectedGrid(){
     // 找到被选中的格子
     int x, y;
     int openRes;
-    for(y=0; y<showMap->height; y++){
-        for(x=0; x<showMap->width; x++){
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
             char data;
             getMapData(showMap, x, y, &data);
             if(data == 's'){
@@ -505,8 +530,8 @@ int flagSelectedGrid(){
     // 找到被选中的格子
     int x, y;
     int flagRes;
-    for(y=0; y<showMap->height; y++){
-        for(x=0; x<showMap->width; x++){
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
             char data;
             getMapData(showMap, x, y, &data);
             if(data == 's' || data == 'g'){
@@ -518,17 +543,6 @@ int flagSelectedGrid(){
 }
 
 int restartSaolei(){
-    free(game->showMap);
-    free(game->sourceMap);
-
-    // 创建一个游戏的两张基础图
-	GameMap * sourceMap = creatGameMap(8, 10, 10);
-    GameMap * showMap = creatMaskMap(sourceMap);
-	
-	// 将两张基础图添加到游戏中
-	game->sourceMap = sourceMap;
-	game->showMap = showMap;
-
-    game->state = 1;
-    flashGameView();
+    initSaolei(game);
+    game->state = 7;
 }
