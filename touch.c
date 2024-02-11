@@ -60,7 +60,7 @@ static void * updataTouchPointForevery(void * argv){
     struct touchPoint * tpoint = (struct touchPoint *)argv;
     while(1){
         updataTouchPoint(tpoint);
-        usleep(5000);
+        usleep(10000);
     }
 }
 

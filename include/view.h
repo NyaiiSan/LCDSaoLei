@@ -48,6 +48,17 @@ void * threadFlashView(void * argv);
 */
 void initTouchEvent(View * screen);
 
+/**
+ * 根据ID隐藏一个View
+*/
+void hideViewById(View * screen, int id);
+
+/**
+ * 根据ID显示一个View
+*/
+void displayViewById(View * screen, int id);
+
+
 /*********************
  * Timer
 **********************/

@@ -77,10 +77,38 @@ void * threadFlashView(void * argv){
     }
 }
 
+void hideViewById(View * view, int id){
+    if(view->id == id){
+        printf("hideViewById: View %d has been hided \n", view->id);
+        view->state = 0;
+        return;
+    }
+    int i;
+    for(i=0; i<view->subViewsNum;i++){
+        hideViewById(view->subViews[i], id);
+    }
+}
+
+void displayViewById(View * view, int id){
+    if(view->id == id){
+        view->state = 1;
+        return;
+    }
+    int i;
+    for(i=0; i<view->subViewsNum;i++){
+        displayViewById(view->subViews[i], id);
+    }
+}
+
+/**
+ * 事件相关功能
+*/
+
 static void touchEventFunction(View * view);
 
 static void updateTouchEvent(View *view, Point *relatP){
     // printf("updateTouchEvent: Update View %d \n", view->id);
+    if(view->state == 0) return ;
     int i;
     // 判断这个相对坐标是否合理
     if(relatP->x < 0 | relatP->x > view->canvas->width | \
@@ -100,7 +128,7 @@ static void updateTouchEvent(View *view, Point *relatP){
     view->event.value[0] = relatP->x;
     view->event.value[1] = relatP->y;
 
-    // printf("updateTouchEvent: View %d have Event. relatP(%d, %d) \n", view->id, view->event.value[0], view->event.value[1]);
+    printf("updateTouchEvent: View %d have Event. relatP(%d, %d) \n", view->id, view->event.value[0], view->event.value[1]);
     touchEventFunction(view);
 
     for(i=0; i<view->subViewsNum; i++){
@@ -121,7 +149,7 @@ static void * updateTouchEvent_t(void * argv){
     Point * touchP = *(a+1);
 
     while(1){
-        usleep(1000);
+        usleep(9000);
         if(touchP->x < 0) continue;
 
         // printf("updateTouchEvent_t: TouchP-(%d, %d) \n", touchP->x, touchP->y);
@@ -140,18 +168,12 @@ void initTouchEvent(View * screen){
     argv[0] = (Point *)screen;
     argv[1] = touchP;
 
-    printf("initTouchEvent: %#x, %#x \n", argv, argv+1);
-
-    printf("initTouchEvent: TouchP-(%d, %d) \n", ((Point *)(argv[1]))->x, ((Point *)(argv[1]))->y);
-
     // 事件更新
     pthread_t evenT;
     printf("ready to pthread_create updateTouchEvent_t \n");
     pthread_create(&evenT, NULL, updateTouchEvent_t, (void *)argv);
 }
 
-// 信号函数相关内容
-// 触发了点击事件
 static void touchEventFunction(View * view){
     switch (view->id)
     {
@@ -167,10 +189,23 @@ static void touchEventFunction(View * view){
     case 4:
         restartSaolei();
         break;
+    case 21:
+        diffChange2Easy();
+        break;
+    case 22:
+        diffChange2Normal();
+        break;
+    case 23:
+        diffChange2Hard();
+        break;
     default:
         break;
     }
 }
+
+/**
+ * 计时器相关功能
+*/
 
 static int timeReset(Timer * timer);
 

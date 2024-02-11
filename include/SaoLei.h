@@ -3,7 +3,7 @@
 
 #include "main.h"
 
-#define HIDE_COLOR 0x00666666
+#define HIDE_COLOR 0x00e1babf
 
 typedef struct{
     int sx;
@@ -12,13 +12,14 @@ typedef struct{
 }GameMap;
 
 typedef struct{
+    View * screen;
     View * gameView;
-    int width;
-    int height;
-    int diffic;
     GameMap * sourceMap;
     GameMap * showMap;
     Timer * timer; // 游戏中嵌入一个计时器
+    int width;
+    int height;
+    int diffic;
     int startPoint[2]; // 第一次点击的格子
     char state;
 }SaoleiGame;

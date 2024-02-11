@@ -133,17 +133,19 @@ static void initSaolei(SaoleiGame * game){
     game->sourceMap = sourceMap;
     game->showMap = showMap;
 
-    game->state = 1;
+    game->state = 7;
     game->timer->cmd[0] = 3;
+    
+    clearCanvas(game->gameView->canvas, -1);
     flashGameView();
 }
 
 SaoleiGame * creatSaolei(){
-	game = malloc(sizeof(SaoleiGame)); //创建一个游戏
+	game = malloc(sizeof(SaoleiGame)*2); //创建一个游戏
 	
     // 设置游戏规格
-    game->width = 8;
-    game->height = 10;
+    game->width = 9;
+    game->height = 9;
     game->diffic = 10;
 
 	// 将两张基础图添加到游戏中
@@ -162,7 +164,6 @@ SaoleiGame * creatSaolei(){
     game->startPoint[0] = -1;
     game->startPoint[1] = -1;
     initSaolei(game);
-    game->state = 7;
 
     return game;
 }
@@ -535,5 +536,43 @@ int flagSelectedGrid(){
 
 int restartSaolei(){
     initSaolei(game);
-    game->state = 7;
+}
+
+int diffChange2Easy(){
+    game->width = 8;
+    game->height = 10;
+    game->diffic = 10;
+
+    initSaolei(game);
+
+    hideViewById(game->screen, 20);
+    displayViewById(game->screen, 1);
+
+    return 1;
+}
+
+int diffChange2Normal(){
+    game->width = 16;
+    game->height = 16;
+    game->diffic = 40;
+
+    initSaolei(game);
+
+    hideViewById(game->screen, 20);
+    displayViewById(game->screen, 1);
+
+    return 1;
+}
+
+int diffChange2Hard(){
+    game->width = 22;
+    game->height = 22;
+    game->diffic = 99;
+
+    initSaolei(game);
+
+    hideViewById(game->screen, 20);
+    displayViewById(game->screen, 1);
+
+    return 1;
 }
