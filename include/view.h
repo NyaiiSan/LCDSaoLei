@@ -57,6 +57,10 @@ void initTouchEvent(View * screen);
 */
 void setViewById(View * view, int id, char state);
 
+/**
+ * 根据ID查找一个View
+*/
+View * getViewById(View * view, int id);
 
 /*********************
  * Timer
@@ -73,7 +77,7 @@ typedef struct{
 }Timer;
 
 // 创建并初始化一个计时器
-Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY, int color);
+Timer * creaTimer(int color);
 
 // 运行一个计时器
 void timeStart(Timer * timer);

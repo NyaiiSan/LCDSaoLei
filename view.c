@@ -82,7 +82,7 @@ void * threadFlashView(void * argv){
 
 void setViewById(View * view, int id, char state){
     if(view->id == id){
-        printf("hideViewById: View %d has been hided \n", view->id);
+        printf("setViewById: View %d has been hided \n", view->id);
         view->state = state;
         return;
     }
@@ -90,6 +90,19 @@ void setViewById(View * view, int id, char state){
     for(i=0; i<view->subViewsNum;i++){
         setViewById(view->subViews[i], id, state);
     }
+}
+
+View * getViewById(View * view, int id){
+    if(view->id == id){
+        return view;
+    }
+
+    View * getView = NULL;
+    int i;
+    for(i=0; i<view->subViewsNum;i++){
+        getView = getViewById(view->subViews[i], id);
+    }
+    return getView;
 }
 /**
  * 事件相关功能
@@ -200,12 +213,12 @@ static void touchEventFunction(View * view){
 
 static int timeReset(Timer * timer);
 
-Timer * creaTimer(int id, int width, int height, int marginsX, int marginsY, int color){
+Timer * creaTimer(int color){
     // 创建一个Timer
     Timer * timer = malloc(sizeof(Timer));
 
     // 初始化Timer
-    View * view = creatView(id, width, height, marginsX, marginsY);
+    View * view = NULL;
     timer->view = view;
     timer->t = 0;
     timer->cmd[0] = 0;
@@ -247,6 +260,7 @@ static void * timeRun(void * argv){
         // 显示这个事件
             char timeStr[32];
             sprintf(timeStr, "%d", timer->t);
+            if(timer->view == NULL) continue;
             clearCanvas(timer->view->canvas, -1);
             drawString(timer->view->canvas, 0, 0, timeStr, timer->view->canvas->height, timer->color);
     }

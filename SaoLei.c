@@ -1,7 +1,13 @@
 #include "main.h"
 
+// 初始化扫雷游戏
+static void initSaolei(SaoleiGame * game);
+
 // 将ShowMap刷新到GameView中
 static int flashGameView();
+
+// 计算标记后的剩余地雷数量
+static void updateMineNum();
 
 /**
  * 打开一个格子
@@ -116,7 +122,6 @@ static GameMap * creatShowMap(){
     return showMap;
 }
 
-// 初始化
 static void initSaolei(SaoleiGame * game){
     printf("initSaolei: SaoLei Init  \n");
     if(game->sourceMap){
@@ -137,6 +142,7 @@ static void initSaolei(SaoleiGame * game){
     game->timer->cmd[0] = 3;
     
     clearCanvas(game->gameView->canvas, -1);
+    updateMineNum();
     flashGameView();
 }
 
@@ -361,7 +367,7 @@ SaoleiGame * creatSaolei(){
 	game->gameView = NULL;
 
     // 为Game添加一个计时器
-    game->timer = creaTimer(11, 150, 40, 920, 10, 0xffcc66);
+    game->timer = creaTimer(0xffcc66);
 
     game->startPoint[0] = -1;
     game->startPoint[1] = -1;
@@ -388,6 +394,12 @@ int initSaoleiLayout(SaoleiGame * game){
 
     // 新建一个游戏区域
     game->gameView = creatView(11, 600, 600, 0, 0);
+
+    // 新建计时器显示
+    game->timer->view = creatView(19, 150, 40, 920, 10);
+
+    // 新建剩余地雷数量显示
+    View * mineNumView = creatView(18, 150, 40, 720, 10);
 
 	// 新建一个点击View 功能是开启一个格子
 	View * openGrid = creatView(12, 100, 70, 870, 100);	// 创建按键
@@ -435,6 +447,7 @@ int initSaoleiLayout(SaoleiGame * game){
 	addView(gamePlayView, restartGame);
 	addView(gamePlayView, game->gameView);
 	addView(gamePlayView, game->timer->view);
+    addView(gamePlayView, mineNumView);
 	
 }
 
@@ -549,6 +562,32 @@ int openSelectedGrid(){
     return openRes;
 }
 
+static void updateMineNum(){
+    GameMap * showMap = game->showMap;
+
+    int mineNum = 0;
+    int x, y;
+    for(y=0; y<game->height; y++){
+        for(x=0; x<game->width; x++){
+            char data;
+            getMapData(showMap, x, y, &data);
+            if(data == 'f' || data == 'g'){
+                mineNum++;
+            }
+        }
+    }
+
+    mineNum = game->diffic - mineNum < 0 ? 0 : game->diffic - mineNum;
+
+    View * mineNumView = getViewById(game->screen, 18);
+    if(mineNumView == NULL) return ;
+
+    char mineNumStr[10];
+    sprintf(mineNumStr, "%d", mineNum);
+    clearCanvas(mineNumView->canvas, -1);
+    drawString(mineNumView->canvas, 0, 0, mineNumStr, mineNumView->canvas->height, game->timer->color);
+}
+
 // 将一个格子插旗
 static int flagGrid(int x, int y){
     GameMap * showMap = game->showMap;
@@ -557,10 +596,12 @@ static int flagGrid(int x, int y){
     getMapData(showMap, x, y, &data);
     if(data == 's'){
         setMapData(showMap, x, y, 'f');
+        updateMineNum();
         return 1;
     }
     else if(data == 'g'){
         setMapData(showMap, x, y, 'h');
+        updateMineNum();
         return 0;
     }
     else{
