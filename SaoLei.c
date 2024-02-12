@@ -140,33 +140,6 @@ static void initSaolei(SaoleiGame * game){
     flashGameView();
 }
 
-SaoleiGame * creatSaolei(){
-	game = malloc(sizeof(SaoleiGame)*2); //创建一个游戏
-	
-    // 设置游戏规格
-    game->width = 9;
-    game->height = 9;
-    game->diffic = 10;
-
-	// 将两张基础图添加到游戏中
-	game->sourceMap = NULL;
-	game->showMap = NULL;
-
-	// 建立一个游戏View
-	View * gameView = creatView(1, 600, 600, 0, 0);
-
-	// 游戏View添加到游戏中
-	game->gameView = gameView;
-
-    // 为Game添加一个计时器
-    game->timer = creaTimer(10, 150, 40, 920, 10, 0xffcc66);
-
-    game->startPoint[0] = -1;
-    game->startPoint[1] = -1;
-    initSaolei(game);
-
-    return game;
-}
 
 static int flashGameView(){
     View * view = game->gameView;
@@ -294,7 +267,6 @@ static int gameIsWin(){
     }
 }
 
-
 static int openGrid(int x, int y){
     // 判断是否是第一次点开，第一次点开重新布局并开始计时器
     if(game->state == 7){
@@ -344,18 +316,6 @@ static int openGrid(int x, int y){
     }
 }
 
-int getRelatPoints(View * view, Point * touchP, int * relatPoint){
-    relatPoint[0] = touchP->x - view->marginsX;
-    relatPoint[1] = touchP->y - view->marginsY;
-    // 判断坐标是否在view内部
-    if(relatPoint[0] < 0 || relatPoint[0] > view->canvas->width || relatPoint[1] < 0 || relatPoint[1] > view->canvas->height){
-        return -1;
-    }
-
-    touchP->x = touchP->y = -1;
-    return 1;
-}
-
 // 获取触摸到的网格并绘制光标
 static int getTouchGrid(int * res){
     View * view = game->gameView;
@@ -383,6 +343,99 @@ static int getTouchGrid(int * res){
 
     // printf("TouchGrid: (%d, %d) \n", *res, *(res + 1));
     return 1;
+}
+
+SaoleiGame * creatSaolei(){
+	game = malloc(sizeof(SaoleiGame)*2); //创建一个游戏
+	
+    // 设置游戏规格
+    game->width = 9;
+    game->height = 9;
+    game->diffic = 10;
+
+	// 将两张基础图添加到游戏中
+	game->sourceMap = NULL;
+	game->showMap = NULL;
+
+	// 游戏View添加到游戏中
+	game->gameView = NULL;
+
+    // 为Game添加一个计时器
+    game->timer = creaTimer(11, 150, 40, 920, 10, 0xffcc66);
+
+    game->startPoint[0] = -1;
+    game->startPoint[1] = -1;
+
+    // 开始游戏计时器
+    timeStart(game->timer);
+
+    // 初始化计时器
+    game->timer->cmd[0] = 3;
+
+    return game;
+}
+
+int initSaoleiLayout(SaoleiGame * game){
+    View * screen = game->screen;
+
+    // 新建一张背景
+	Canvas * backgroundImg = getBmpImg("bg.bmp");	// 导入背景图片
+	View * background = creatView(0, screen->canvas->width, screen->canvas->height, 0, 0); // 创建背景控件
+	buflash(background->canvas, backgroundImg, 0, 0);	// 设置控件背景
+
+    // 新建一个游戏操作View
+    View * gamePlayView = creatView(10, screen->canvas->width, screen->canvas->height, 0, 0);
+
+    // 新建一个游戏区域
+    game->gameView = creatView(11, 600, 600, 0, 0);
+
+	// 新建一个点击View 功能是开启一个格子
+	View * openGrid = creatView(12, 100, 70, 870, 100);	// 创建按键
+	clearCanvas(openGrid->canvas, 0x0000ff00);	// 设置按钮颜色
+	drawString(openGrid->canvas, 5, 10, "OPEN", 30, 0x00ffffff);	// 添加提示文字
+
+	// 新建一个View 功能是插旗子
+	View * setFlag = creatView(13, 100, 70, 870, 200);	// 创建按键
+	clearCanvas(setFlag->canvas, 0x00ff0000);	// 设置按钮颜色
+	drawString(setFlag->canvas, 5, 10, "FLAG", 30, 0x00ffffff);	// 添加提示文字
+
+	// 新建一个View 功能重新开始游戏
+	View * restartGame = creatView(14, 100, 70, 870, 350);	// 创建按键
+	clearCanvas(restartGame->canvas, 0x0000ffff);	// 设置按钮颜色
+	drawString(restartGame->canvas, 5, 10, "RESTART", 30, 0x00ffffff);	// 添加提示文字
+	
+	// 创建一个难度选择
+	View * diffChange = creatView(20, 300, 600, 50, 10);	// 难度选择布局
+	clearCanvas(diffChange->canvas, -1);	// 布局按钮颜色
+	drawString(diffChange->canvas, 5, 5, "DIFFICULTY", 43, 0x00444444);	// 添加提示文字
+
+	View * diffEasy = creatView(21, 200, 70, 50, 100); // 简单
+	clearCanvas(diffEasy->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(diffEasy->canvas, 5, 5, "EASY", 40, 0x00ffffff);	// 添加提示文字
+
+	View * diffNormal = creatView(22, 200, 70, 50, 250); // 普通
+	clearCanvas(diffNormal->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(diffNormal->canvas, 5, 5, "NORMAL", 40, 0x00ffffff);	// 添加提示文字
+
+	View * diffHard = creatView(23, 200, 70, 50, 400); // 困难
+	clearCanvas(diffHard->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(diffHard->canvas, 5, 5, "HARD", 40, 0x00ffffff);	// 添加提示文字
+
+    //注册所有的View
+    addView(screen, background);
+    
+    addView(background, diffChange);
+	addView(diffChange, diffEasy);
+	addView(diffChange, diffNormal);
+	addView(diffChange, diffHard);
+
+    addView(background, gamePlayView);
+	addView(gamePlayView, openGrid);
+	addView(gamePlayView, setFlag);
+	addView(gamePlayView, restartGame);
+	addView(gamePlayView, game->gameView);
+	addView(gamePlayView, game->timer->view);
+	
 }
 
 int selectGrid(){
@@ -538,6 +591,11 @@ int restartSaolei(){
     initSaolei(game);
 }
 
+int diffselect(){
+    setViewById(game->screen, 10, 0);
+    setViewById(game->screen, 20, 1);
+}
+
 int diffChange2Easy(){
     game->width = 8;
     game->height = 10;
@@ -545,8 +603,8 @@ int diffChange2Easy(){
 
     initSaolei(game);
 
-    hideViewById(game->screen, 20);
-    displayViewById(game->screen, 1);
+    setViewById(game->screen, 10, 2);
+    setViewById(game->screen, 20, 0);
 
     return 1;
 }
@@ -558,8 +616,8 @@ int diffChange2Normal(){
 
     initSaolei(game);
 
-    hideViewById(game->screen, 20);
-    displayViewById(game->screen, 1);
+    setViewById(game->screen, 10, 2);
+    setViewById(game->screen, 20, 0);
 
     return 1;
 }
@@ -571,8 +629,8 @@ int diffChange2Hard(){
 
     initSaolei(game);
 
-    hideViewById(game->screen, 20);
-    displayViewById(game->screen, 1);
+    setViewById(game->screen, 10, 2);
+    setViewById(game->screen, 20, 0);
 
     return 1;
 }

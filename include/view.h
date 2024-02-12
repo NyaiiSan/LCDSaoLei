@@ -13,7 +13,11 @@ typedef struct event{
 
 typedef struct view
 {
-    char state; // View时候会被更新
+    char state;
+    // View更新状态
+    // 0: 不会被更新
+    // 1: 全部更新
+    // 2: 只刷新子View, 本身不会被刷新, 一般是一些约束性的View
     int id; // 保存View的唯一ID
     int marginsX; // x方向的相对与父的位置
     int marginsY; // y方向的相对与父的位置
@@ -49,14 +53,9 @@ void * threadFlashView(void * argv);
 void initTouchEvent(View * screen);
 
 /**
- * 根据ID隐藏一个View
+ * 根据ID设置一个View的状态
 */
-void hideViewById(View * screen, int id);
-
-/**
- * 根据ID显示一个View
-*/
-void displayViewById(View * screen, int id);
+void setViewById(View * view, int id, char state);
 
 
 /*********************

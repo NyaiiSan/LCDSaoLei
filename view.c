@@ -51,9 +51,12 @@ static int flashView(View * view, Canvas * frame, int x, int y){
     int i;
     for(i=0; i<view->subViewsNum; i++){
         if(view->subViews[i]->state == 0) continue; // 判断view是否为可刷新状态
-        buflash(frame, view->subViews[i]->canvas, view->subViews[i]->marginsX + x, view->subViews[i]->marginsY + y); // 刷新本身
+        
+        if(view->subViews[i]->state != 2){
+            buflash(frame, view->subViews[i]->canvas, view->subViews[i]->marginsX + x, view->subViews[i]->marginsY + y); // 刷新本身
+            flashedNum++;
+        }
         flashedNum += flashView(view->subViews[i], frame, view->subViews[i]->marginsX, view->subViews[i]->marginsY); // 刷新子项
-        flashedNum++;
     }
 
     return flashedNum;
@@ -77,29 +80,17 @@ void * threadFlashView(void * argv){
     }
 }
 
-void hideViewById(View * view, int id){
+void setViewById(View * view, int id, char state){
     if(view->id == id){
         printf("hideViewById: View %d has been hided \n", view->id);
-        view->state = 0;
+        view->state = state;
         return;
     }
     int i;
     for(i=0; i<view->subViewsNum;i++){
-        hideViewById(view->subViews[i], id);
+        setViewById(view->subViews[i], id, state);
     }
 }
-
-void displayViewById(View * view, int id){
-    if(view->id == id){
-        view->state = 1;
-        return;
-    }
-    int i;
-    for(i=0; i<view->subViewsNum;i++){
-        displayViewById(view->subViews[i], id);
-    }
-}
-
 /**
  * 事件相关功能
 */
@@ -128,7 +119,7 @@ static void updateTouchEvent(View *view, Point *relatP){
     view->event.value[0] = relatP->x;
     view->event.value[1] = relatP->y;
 
-    printf("updateTouchEvent: View %d have Event. relatP(%d, %d) \n", view->id, view->event.value[0], view->event.value[1]);
+    // printf("updateTouchEvent: View %d have Event. relatP(%d, %d) \n", view->id, view->event.value[0], view->event.value[1]);
     touchEventFunction(view);
 
     for(i=0; i<view->subViewsNum; i++){
@@ -177,16 +168,16 @@ void initTouchEvent(View * screen){
 static void touchEventFunction(View * view){
     switch (view->id)
     {
-    case 1:
+    case 11:
         selectGrid();
         break;
-    case 2:
+    case 12:
         openSelectedGrid();
         break;
-    case 3:
+    case 13:
         flagSelectedGrid();
         break;
-    case 4:
+    case 14:
         restartSaolei();
         break;
     case 21:

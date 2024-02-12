@@ -27,13 +27,15 @@ typedef struct{
 // 初始化一个扫雷游戏
 SaoleiGame * creatSaolei();
 
+// 初始化游戏显示布局
+int initSaoleiLayout(SaoleiGame * game);
+
 // 游戏重新开始
 int restartSaolei();
 
 /**
  * 选择一个格子: 光标移动到选中格子
 */
-
 int selectGrid();
 
 /**
