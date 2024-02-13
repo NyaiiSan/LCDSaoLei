@@ -48,4 +48,11 @@ int openSelectedGrid();
 */
 int flagSelectedGrid();
 
+// 选择游戏难度
+int diffselect();
+// 打开菜单
+int menuOpen();
+// 关闭菜单
+int menuClose();
+
 #endif

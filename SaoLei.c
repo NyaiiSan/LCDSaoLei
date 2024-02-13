@@ -352,7 +352,7 @@ static int getTouchGrid(int * res){
 }
 
 SaoleiGame * creatSaolei(){
-	game = malloc(sizeof(SaoleiGame)*2); //创建一个游戏
+	game = malloc(sizeof(SaoleiGame) + 4); //创建一个游戏
 	
     // 设置游戏规格
     game->width = 9;
@@ -411,10 +411,10 @@ int initSaoleiLayout(SaoleiGame * game){
 	clearCanvas(setFlag->canvas, 0x00ff0000);	// 设置按钮颜色
 	drawString(setFlag->canvas, 5, 10, "FLAG", 30, 0x00ffffff);	// 添加提示文字
 
-	// 新建一个View 功能重新开始游戏
-	View * restartGame = creatView(14, 100, 70, 870, 350);	// 创建按键
-	clearCanvas(restartGame->canvas, 0x0000ffff);	// 设置按钮颜色
-	drawString(restartGame->canvas, 5, 10, "RESTART", 30, 0x00ffffff);	// 添加提示文字
+    // 新建一个View 功能打开菜单
+	View * openMenu = creatView(14, 100, 70, 870, 350);	// 创建按键
+	clearCanvas(openMenu->canvas, 0x0000ffff);	// 设置按钮颜色
+	drawString(openMenu->canvas, 5, 10, "MENU", 30, 0x00ffffff);	// 添加提示文字
 	
 	// 创建一个难度选择
 	View * diffChange = creatView(20, 300, 600, 50, 10);	// 难度选择布局
@@ -433,6 +433,25 @@ int initSaoleiLayout(SaoleiGame * game){
 	clearCanvas(diffHard->canvas, 0x0066ccff);	// 设置按钮颜色
 	drawString(diffHard->canvas, 5, 5, "HARD", 40, 0x00ffffff);	// 添加提示文字
 
+    // 添加功能选择菜单
+	View * menu = creatView(40, 300, 550, 600, 10);	// 创建菜单
+	clearCanvas(menu->canvas, -1);	// 设置菜单颜色
+	drawString(menu->canvas, 5, 10, "MENU", 40, 0x00ffffff);	// 添加提示文字
+
+    View * menu_continue = creatView(41, 200, 70, 50, 100); // 点击继续游戏
+    clearCanvas(menu_continue->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(menu_continue->canvas, 5, 10, "CONTINUE", 30, 0x00ffffff);	// 添加提示文字
+
+    View * menu_restart = creatView(42, 200, 70, 50, 200); // 点击重新开始游戏
+    clearCanvas(menu_restart->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(menu_restart->canvas, 5, 10, "RESTART", 30, 0x00ffffff);	// 添加提示文字
+
+    View * menu_setdiff = creatView(43, 200, 70, 50, 300); // 点击重新开始游戏
+    clearCanvas(menu_setdiff->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(menu_setdiff->canvas, 5, 10, "DIFFICULTY", 30, 0x00ffffff);	// 添加提示文字
+
+    menu->state = 0;
+
     //注册所有的View
     addView(screen, background);
     
@@ -441,13 +460,18 @@ int initSaoleiLayout(SaoleiGame * game){
 	addView(diffChange, diffNormal);
 	addView(diffChange, diffHard);
 
+    addView(menu, menu_continue);
+    addView(menu, menu_restart);
+    addView(menu, menu_setdiff);
+
     addView(background, gamePlayView);
 	addView(gamePlayView, openGrid);
 	addView(gamePlayView, setFlag);
-	addView(gamePlayView, restartGame);
+    addView(gamePlayView, openMenu);
 	addView(gamePlayView, game->gameView);
 	addView(gamePlayView, game->timer->view);
     addView(gamePlayView, mineNumView);
+    addView(background, menu);
 	
 }
 
@@ -672,6 +696,20 @@ int diffChange2Hard(){
 
     setViewById(game->screen, 10, 2);
     setViewById(game->screen, 20, 0);
+
+    return 1;
+}
+
+int menuOpen(){
+    setViewById(game->screen, 10, 0);
+    setViewById(game->screen, 40, 1);
+
+    return 1;
+}
+
+int menuClose(){
+    setViewById(game->screen, 10, 2);
+    setViewById(game->screen, 40, 0);
 
     return 1;
 }

@@ -191,7 +191,7 @@ static void touchEventFunction(View * view){
         flagSelectedGrid();
         break;
     case 14:
-        restartSaolei();
+        menuOpen();
         break;
     case 21:
         diffChange2Easy();
@@ -202,6 +202,18 @@ static void touchEventFunction(View * view){
     case 23:
         diffChange2Hard();
         break;
+    case 41:
+        menuClose();
+        break;
+    case 42:
+        menuClose();
+        restartSaolei();
+        break;
+    case 43:
+        menuClose();
+        diffselect();
+        break;
+
     default:
         break;
     }
