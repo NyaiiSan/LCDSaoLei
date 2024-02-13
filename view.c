@@ -101,6 +101,7 @@ View * getViewById(View * view, int id){
     int i;
     for(i=0; i<view->subViewsNum;i++){
         getView = getViewById(view->subViews[i], id);
+        if(getView != NULL) break;
     }
     return getView;
 }
