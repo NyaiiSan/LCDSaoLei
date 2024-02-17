@@ -9,6 +9,15 @@ static int flashGameView();
 // 计算标记后的剩余地雷数量
 static void updateMineNum();
 
+// 向玩家列表中添加一名玩家
+static int addPlayer(char *name, int point);
+
+// 从文件中读取玩家数据
+static int loadPlayersData();
+
+// 将玩家数据保存到文件中
+static int savePlayersData();
+
 /**
  * 打开一个格子
  * 返回值:
@@ -140,7 +149,7 @@ static void initSaolei(SaoleiGame * game){
 
     game->state = 7;
     game->timer->cmd[0] = 3;
-    
+
     clearCanvas(game->gameView->canvas, -1);
     updateMineNum();
     flashGameView();
@@ -264,7 +273,7 @@ static int gameIsWin(){
             if(data == 'h' || data == 's' || data == 'f' || data == 'g') hideNum++;
         }
     }
-    printf("gameIsWin: hideNum %d diffic %d \n", hideNum, game->diffic);
+    // printf("gameIsWin: hideNum %d diffic %d \n", hideNum, game->diffic);
     if(hideNum == game->diffic){
         return 1;
     }
@@ -378,6 +387,17 @@ SaoleiGame * creatSaolei(){
     // 初始化计时器
     game->timer->cmd[0] = 3;
 
+    // 初始化游戏玩家数据
+    game->players = malloc(sizeof(struct playerData));
+    game->players->easyPlays = malloc(sizeof(Player *) * 20);
+    game->players->normalPlays = malloc(sizeof(Player *) * 20);
+    game->players->hardPlays = malloc(sizeof(Player *) * 20);
+    if(loadPlayersData() == -1){
+        game->players->easyPlaysNum = 0;
+        game->players->normalPlaysNum = 0;
+        game->players->hardPlaysNum = 0;
+    }
+
     return game;
 }
 
@@ -450,7 +470,22 @@ int initSaoleiLayout(SaoleiGame * game){
     clearCanvas(menu_setdiff->canvas, 0x0066ccff);	// 设置按钮颜色
 	drawString(menu_setdiff->canvas, 5, 10, "DIFFICULTY", 30, 0x00ffffff);	// 添加提示文字
 
+    View * menu_players = creatView(44, 200, 70, 50, 400); // 点击显示玩家榜单
+    clearCanvas(menu_players->canvas, 0x0066ccff);	// 设置按钮颜色
+	drawString(menu_players->canvas, 5, 10, "PLAYERS", 30, 0x00ffffff);	// 添加提示文字
+
+    View * menu_win = creatView(47, 200, 70, 50, 500); // 点击直接赢得游戏
+    clearCanvas(menu_win->canvas, 0x00ff66cc);	// 设置按钮颜色
+	drawString(menu_win->canvas, 5, 10, "TOUCH WIN", 30, 0x00ffffff);	// 添加提示文字
+    drawString(menu_win->canvas, 5, 35, "ONLY FOR DEBUG", 20, 0x00ffffff);	// 添加提示文字
+
     menu->state = 0;
+
+    // 添加用户数据显示区域
+    View * playersView = creatView(50, 400, 550, 50, 25); // 用户数据显示区域
+    clearCanvas(playersView->canvas, 0x00666666);	// 设置背景颜色
+
+    playersView->state = 0;
 
     //注册所有的View
     addView(screen, background);
@@ -463,6 +498,8 @@ int initSaoleiLayout(SaoleiGame * game){
     addView(menu, menu_continue);
     addView(menu, menu_restart);
     addView(menu, menu_setdiff);
+    addView(menu, menu_players);
+    addView(menu, menu_win);
 
     addView(background, gamePlayView);
 	addView(gamePlayView, openGrid);
@@ -472,6 +509,7 @@ int initSaoleiLayout(SaoleiGame * game){
 	addView(gamePlayView, game->timer->view);
     addView(gamePlayView, mineNumView);
     addView(background, menu);
+    addView(background, playersView);
 	
 }
 
@@ -551,6 +589,19 @@ static int gameWin(){
         }
     }
     flashGameView();
+
+    // 向玩家列表中添加这位获胜者的数据
+    // 合成玩家name, 以当前时间作为玩家的名字
+    // 获取当前时间
+    time_t now;
+    time(&now);
+    struct tm *t = localtime(&now);
+    char name[16];
+    sprintf(name, "%04d%03d%02d%02d%02d",t->tm_year+1900, t->tm_yday, t->tm_hour, t->tm_min, t->tm_sec);
+    printf("gameWin: %s \n", name);
+    // 添加玩家
+    addPlayer(name, game->timer->t);
+
     game->state = 0;
     game->timer->cmd[0] = 2;
 
@@ -712,4 +763,183 @@ int menuClose(){
     setViewById(game->screen, 40, 0);
 
     return 1;
+}
+
+/**
+ * 玩家统计
+*/
+struct Players{
+    Player **players;
+    int *num;
+};
+
+static void getPlayers(struct Players * players){
+    switch (game->diffic)
+    {
+    case 10:
+        players->players = game->players->easyPlays;
+        players->num = &game->players->easyPlaysNum;
+        break;
+    case 40:
+        players->players = game->players->normalPlays;
+        players->num = &game->players->normalPlaysNum;
+        break;
+    case 99:
+        players->players = game->players->hardPlays;
+        players->num = &game->players->hardPlaysNum;
+        break;
+    default:
+        break;
+    }
+}
+
+// 根据分数对玩家进行排序
+static int sortPlays(){
+    struct Players players;
+    getPlayers(&players);
+
+    printf("sortPlays: start  \n");
+    int i,j;
+    for(i=0; i<*players.num; i++){
+        int t = players.players[i]->point;
+        for(j=i+1; j<*players.num; j++){
+            if(players.players[j]->point < t){
+                Player *tp = players.players[j];
+                players.players[j] = players.players[i];
+                players.players[i] = tp;
+            }
+        }
+    }
+    return 1;
+}
+
+static int addPlayer(char *name, int point){
+    Player * player = malloc(sizeof(Player));
+    strncpy(player->name, name, 16);
+    player->point = point;
+
+    // 获取玩家存储地址
+    struct Players players;
+    getPlayers(&players);
+
+    if(*players.num < 100){
+        players.players[*players.num] = player;
+        *players.num += 1;
+    }
+    else{
+        if(players.players[*players.num - 1]->point > point){
+            players.players[*players.num - 1] = player;
+        }
+    }
+    sortPlays();
+    savePlayersData();
+}
+
+static int savePlayersData(){
+    FILE *fb = fopen("GameData.hex", "w");
+    if(fb == NULL){
+        printf("savePlayersData: Open file error \n");
+        return -1;
+    }
+
+    int i;
+    // 保存简单玩家数据
+    fwrite(&game->players->easyPlaysNum, sizeof(int), 1, fb);
+    for(i=0; i<game->players->easyPlaysNum; i++){
+        fwrite(game->players->easyPlays[i], sizeof(Player), 1, fb);
+    }
+
+    // 保存普通玩家数据
+    fwrite(&game->players->normalPlaysNum, sizeof(int), 1, fb);
+    for(i=0; i<game->players->normalPlaysNum; i++){
+        fwrite(game->players->normalPlays[i], sizeof(Player), 1, fb);
+    }
+
+    // 保存困难玩家数据
+    fwrite(&game->players->hardPlaysNum, sizeof(int), 1, fb);
+    for(i=0; i<game->players->hardPlaysNum; i++){
+        fwrite(game->players->hardPlays[i], sizeof(Player), 1, fb);
+    }
+
+    fclose(fb);
+
+    printf("savePlayersData: %d   \n", game->players->easyPlaysNum+game->players->normalPlaysNum+game->players->hardPlaysNum);
+    return 0;
+}
+
+static int loadPlayersData(){
+    FILE *fb = fopen("GameData.hex", "r");
+    if(fb == NULL){
+        printf("loadPlayersData: Open file error \n");
+        return -1;
+    }
+    int i;
+    Player * player;
+    // 读取简单玩家数据
+    fread(&game->players->easyPlaysNum, sizeof(int), 1, fb);
+    printf("loadPlayersData: easyPlaysNum %d \n", game->players->easyPlaysNum);
+    for(i=0; i<game->players->easyPlaysNum; i++){
+        player = malloc(sizeof(Player)+4);
+        fread(player, sizeof(Player), 1, fb);
+        printf("loadPlayersData: Playername %s \n", player->name);
+        printf("loadPlayersData: Playerpoint %d \n", player->point);
+        puts("");
+        game->players->easyPlays[i] = player;
+    }
+
+    // 读取普通玩家数据
+    fread(&game->players->normalPlaysNum, sizeof(int), 1, fb);
+    for(i=0; i<game->players->normalPlaysNum; i++){
+        player = malloc(sizeof(Player));
+        fread(player, sizeof(Player), 1, fb);
+        game->players->normalPlays[i] = player;
+    }
+
+    // 读取困难玩家数据
+    fread(&game->players->hardPlaysNum, sizeof(int), 1, fb);
+    for(i=0; i<game->players->hardPlaysNum; i++){
+        player = malloc(sizeof(Player));
+        fread(player, sizeof(Player), 1, fb);
+        game->players->hardPlays[i] = player;
+    }
+
+    printf("loadPlayersData: %d   \n", game->players->easyPlaysNum+game->players->normalPlaysNum+game->players->hardPlaysNum);
+
+    fclose(fb);
+}
+
+int showPlayers(){
+    View *playersView = getViewById(game->screen, 50);
+    clearCanvas(playersView->canvas, 0x00666666);
+    drawString(playersView->canvas, 5, 10, "RANKINGS: TOUCH TO CLOSE", 22, 0x00ffffff);
+
+
+    printf("showPlayers: Players  \n");
+    // 获取玩家存储地址
+    struct Players players;
+    getPlayers(&players);
+
+    int y = 50;
+    int i;
+    for(i=0; i<*players.num; i++){
+        char playerInfo[60];
+        sprintf(playerInfo, "%d. NAME: %s   TIME: %d",i+1, players.players[i]->name, players.players[i]->point);
+        drawString(playersView->canvas, 20, y+i*20, playerInfo, 20, 0x00ffffff);
+    }
+
+    setViewById(game->screen, 50, 1);
+    setViewById(game->screen, 40, 0);
+    printf("showPlayers: PlayersNum %d  \n", *players.num);
+    return *players.num;
+}
+
+int cheat_win(){
+    gameWin();
+
+    return 1;
+}
+
+int closePlayerView(){
+    setViewById(game->screen, 50, 0);
+    setViewById(game->screen, 40, 1);
 }

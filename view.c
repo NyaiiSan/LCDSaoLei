@@ -76,7 +76,7 @@ void * threadFlashView(void * argv){
         buflash(screen->canvas, &frame, 0, 0);
 
         // 帧绘制延迟
-        usleep(16000);
+        usleep(0);
     }
 }
 
@@ -213,6 +213,16 @@ static void touchEventFunction(View * view){
     case 43:
         menuClose();
         diffselect();
+        break;
+    case 44:
+        showPlayers();
+        break;
+    case 47:
+        menuClose();
+        cheat_win();
+        break;
+    case 50:
+        closePlayerView();
         break;
 
     default:
