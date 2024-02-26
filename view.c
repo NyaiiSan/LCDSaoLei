@@ -194,6 +194,9 @@ static void touchEventFunction(View * view){
     case 14:
         menuOpen();
         break;
+    case 15:
+        restartSaolei();
+        break;
     case 21:
         diffChange2Easy();
         break;

@@ -479,6 +479,11 @@ int initSaoleiLayout(SaoleiGame * game){
 	drawString(menu_win->canvas, 5, 10, "TOUCH WIN", 30, 0x00ffffff);	// 添加提示文字
     drawString(menu_win->canvas, 5, 35, "ONLY FOR DEBUG", 20, 0x00ffffff);	// 添加提示文字
 
+    // 创建一个提示弹窗
+    View * messageBox = creatView(15, 400, 300, 312, 150);
+    clearCanvas(messageBox->canvas, 0x00eeeeee);	// 设置弹窗背景颜色
+    messageBox->state = 0;
+
     menu->state = 0;
 
     // 添加用户数据显示区域
@@ -510,6 +515,7 @@ int initSaoleiLayout(SaoleiGame * game){
     addView(gamePlayView, mineNumView);
     addView(background, menu);
     addView(background, playersView);
+    addView(background, messageBox);
 	
 }
 
@@ -553,6 +559,24 @@ int selectGrid(){
     return 1;
 }
 
+// 弹窗提示
+int gameMessageBox(int type){
+    // 获取弹窗
+    View *messageBox = getViewById(game->screen, 15);
+    clearCanvas(messageBox->canvas, 0x00eeeeee);	// 设置弹窗背景颜色
+
+    if(type == 0) { // 失败时弹窗
+        drawString(messageBox->canvas, 130, 70, "FAILED", 50, 0x00ff0000);
+    }
+    else if(type == 1) { // 成功时弹窗
+        drawString(messageBox->canvas, 120, 70, "SUCCESS", 50, 0x0000ff00);
+    }
+    drawString(messageBox->canvas, 120, 250, "TOUCH to RESTART", 20, 0x00444444);
+    messageBox->state = 1;  // 弹窗设置为可见
+
+    return 1;
+}
+
 static int gameOver(){
     GameMap * sourceMap = game->sourceMap;
     GameMap * showMap = game->showMap;
@@ -570,6 +594,8 @@ static int gameOver(){
     flashGameView();
     game->state = 0;
     game->timer->cmd[0] = 2;
+
+    gameMessageBox(0);
 
     return 1;
 }
@@ -604,6 +630,8 @@ static int gameWin(){
 
     game->state = 0;
     game->timer->cmd[0] = 2;
+
+    gameMessageBox(1);
 
     return 1;
 }
@@ -705,6 +733,7 @@ int flagSelectedGrid(){
 
 int restartSaolei(){
     initSaolei(game);
+    setViewById(game->screen, 15, 0);
 }
 
 int diffselect(){
