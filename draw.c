@@ -261,3 +261,80 @@ int drawString(Canvas * canvas, int x, int y, char * str, int size, int color){
 
     return 1;
 }
+
+
+int *saveAs(Canvas *canvas){
+    // 计算填充字节大小
+    int filler;
+    if((canvas->width * 3)%4 == 0){
+        filler = 0;
+    }
+    else{
+        filler = 4 - ( (canvas->width * 3) % 4 );
+    }
+    // 初始化数据头
+    BMIHeader *bmiHeader = malloc(sizeof(BMIHeader));
+    bmiHeader->biSize = 40;
+    bmiHeader->biWidth = canvas->width;
+    bmiHeader->biHeight = canvas->height;
+    bmiHeader->biPlanes = 1;
+    bmiHeader->biBitCount = 24;
+    bmiHeader->biCompression = 0;
+    bmiHeader->biSize = (canvas->width*3 + filler) * canvas->height;
+    bmiHeader->biXPelsPerMeter = 0;
+    bmiHeader->biYPelsPerMeter = 0;
+    bmiHeader->biClrUsed = 0;
+    bmiHeader->biClrImportant = 0;
+
+    // 写入图片数据
+    char * biData = malloc(bmiHeader->biSize);
+    int p = 0;
+    int x,y;
+    for(y=canvas->height; y>0; y--){
+        for(x=0; x<canvas->width; x++){
+            int color = *(canvas->p + x + canvas->width * y);
+            unsigned char red = color>>16;
+            unsigned char green = color>>8;
+            unsigned char blue = color;
+            biData[p++] = blue;
+            biData[p++] = green;
+            biData[p++] = red;
+        }
+        int j;
+        for(j=0; j<filler; j++){
+            biData[p++] = 0x00;
+        }
+    }
+
+    // 初始化文件头
+    BMFHeader bmfHeader;
+    bmfHeader.bfType = 0x4d42;
+    bmfHeader.bfSize = 40 + 14 + bmiHeader->biSize;
+    bmfHeader.bfReserved1 = 0;
+    bmfHeader.bfReserved2 = 0;
+    bmfHeader.bfOffBits = 14;
+
+    printf("saveAs: BMFHeader %d, BMIHeader %d,", sizeof(BMFHeader), sizeof(BMIHeader));
+
+    // 保存为图片文件
+    FILE *fb = fopen("ScreenShot.bmp", "wb");
+    // 写入文件头
+    fwrite(&bmfHeader, 2, 1, fb);
+    fwrite(&bmfHeader.bfSize, 4, 1, fb);
+    fwrite(&bmfHeader.bfReserved1, 2, 1, fb);
+    fwrite(&bmfHeader.bfReserved2, 2, 1, fb);
+    fwrite(&bmfHeader.bfOffBits, 4, 1, fb);
+    fwrite(bmiHeader, 40, 1, fb);
+    fwrite(biData, bmiHeader->biSize, 1, fb);
+
+    fseek(fb, 14, 0);
+    fputc(40, fb);
+    fputc(0, fb);
+    fputc(0, fb);
+    fputc(0, fb);
+
+    fclose(fb);
+    free(biData);
+
+    printf("saveAs: Image Saved  \n");
+}

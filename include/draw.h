@@ -86,4 +86,7 @@ int drawChar(Canvas * canvas, int x, int y, char c, int width, int height, int c
 */
 int drawString(Canvas * canvas, int x, int y, char * str, int size, int color);
 
+// 将画布转换为BIP图片保存
+int *saveAs(Canvas *canvas);
+
 #endif

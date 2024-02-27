@@ -26,17 +26,6 @@ BmpImg * openBmpImg(char * path){
 
     int readSize = 0;
 
-    // int x, y;
-    // for(y=0; y<image->height; y++){
-
-	// 	for(x=0; x<image->width; x++){
-			
-	// 		char * cp = (image->p + (image->depth/8) * (y * image->width + x));
-	// 		fseek(fb, 0x36 + (image->width * image->depth/8 + image->fillerSize) * y + x * image->depth/8, 0);
-    //         readSize += fread(cp, image->depth/8, 1, fb);
-	// 	}
-	// }
-
     int i;
     for(i=0; i<image->height; i++){
         fseek(fb, 0x36 + i * ((image->width) * (image->depth/8) + image->fillerSize), 0);

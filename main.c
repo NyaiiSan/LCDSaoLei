@@ -56,7 +56,8 @@ int main(int argc, char * argv[]){
 	diffselect();
 
 	while(1){
-		usleep(100000);
+		getchar();
+		saveAs(screen->canvas);
 	}
 
 	usleep(1000000);
